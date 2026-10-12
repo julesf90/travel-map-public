@@ -1457,7 +1457,7 @@ async function reload() {
 }
 
 // Sends a change to server.py; resolves to an error message, or '' on success.
-const NEEDS_SERVER = 'Saving needs the map to be started with "Start Travel Map" (or python3 server.py).';
+const NEEDS_SERVER = 'Saving needs the map to be started with "python3 server.py".';
 async function save(url, payload) {
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

@@ -28,7 +28,7 @@ Requires Python 3 (no packages to install).
 python3 server.py
 ```
 
-Then open <http://localhost:8765>. On macOS you can double-click `Start Travel Map.command` instead.
+Then open <http://localhost:8765>.
 
 The first run copies `places.sample.csv` to `places.csv`, which is the file the map reads and edits. `places.csv` is listed in `.gitignore`, so your own places stay on your computer.
 
