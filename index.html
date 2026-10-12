@@ -1,0 +1,1624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<style>
+  :root {
+    --ink: #1d2a33;
+    --muted: #6b7a85;
+    --panel: #ffffff;
+    --line: #dfe5e9;
+    --accent: #d9534a;
+    --visited: #2f8f83;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    flex-direction: column;
+    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: #eef2f4;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 26px; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+  .counters { display: flex; gap: 10px; flex-wrap: wrap; }
+  .counter { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 104px; font: inherit; color: inherit; text-align: left; background: #f3f6f7; border: 1px solid transparent; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  .counter:hover { background: #e9eef1; }
+  .counter[aria-pressed="true"] { background: #e9eef1; border-color: #b9c4cb; }
+  .list-group { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 2px; }
+  .list-group:first-child { margin-top: 0; }
+  .list-item { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); }
+  .list-row { display: flex; flex: 1; min-width: 0; justify-content: space-between; align-items: baseline; gap: 10px; text-align: left; font: inherit; font-size: 14px; color: var(--ink); background: none; border: 0; padding: 7px 0; cursor: pointer; }
+  .list-edit { flex: none; font: inherit; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .list-edit:hover { border-color: var(--muted); }
+  .read-only .list-edit { display: none; }
+  .list-row:hover span:first-child { text-decoration: underline; }
+  .list-row small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .list-empty { color: var(--muted); font-size: 13px; }
+  .counter b { font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .counter span { color: var(--muted); font-size: 12px; }
+  .counter.countries b { color: var(--visited); }
+  .counter.cities b { color: var(--accent); }
+  #year-filter { color: var(--muted); font-size: 13px; }
+  #add-open, #theme-toggle, .tool, .add-actions button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  #add-open:hover, #theme-toggle:hover, .tool:hover, #add-cancel:hover, .share-menu button:hover { background: #f3f6f7; }
+  #add-save { background: #0b4f47; border-color: #0b4f47; color: #fff; }
+  #add-save:disabled { opacity: .6; cursor: default; }
+  #add-dialog { background: var(--panel); border: 0; border-radius: 10px; padding: 0; width: 340px; max-width: calc(100vw - 32px); box-shadow: 0 10px 40px rgba(0, 0, 0, .3); color: var(--ink); }
+  #add-dialog::backdrop { background: rgba(20, 30, 36, .4); }
+  #add-form { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  #add-form h2 { margin: 0 0 2px; font-size: 16px; }
+  #add-form label { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--muted); }
+  #add-form input, #add-form select, #add-form textarea { font: inherit; font-size: 14px; color: var(--ink); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); resize: vertical; }
+  .add-dates { display: flex; gap: 10px; }
+  .add-dates label { flex: 1; min-width: 0; }
+  #add-form.is-wish .visited-only { display: none; }
+  #add-error { color: #a12b22; font-size: 13px; }
+  #add-error:empty { display: none; }
+  .add-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  #year-filter[hidden] { display: none; }
+  #year { font: inherit; font-size: 14px; color: var(--ink); padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); margin-left: 4px; }
+  #sample-note { font-size: 12px; font-weight: 600; color: #7a5a00; background: #fbe9a8; padding: 3px 10px; border-radius: 10px; }
+  #sample-note[hidden] { display: none; }
+  #status { margin-left: auto; color: var(--muted); font-size: 13px; }
+  #status.warn { color: #a15c00; }
+  #status label { color: var(--visited); text-decoration: underline; cursor: pointer; }
+  #main { flex: 1; min-height: 0; display: flex; }
+  #map { flex: 1; min-width: 0; background: #cfd3d4; }
+  #panel { width: 290px; max-width: 75vw; overflow-y: auto; background: var(--panel); padding: 14px 14px 20px; }
+  #panel[hidden], #panel section[hidden] { display: none; }
+  #panel h2 { font-size: 15px; margin: 0 0 10px; }
+  #facts-scope, #lists-scope { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 4px; }
+  .fact { padding: 10px 0; border-top: 1px solid var(--line); }
+  .fact-label { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+  .fact-value { font-size: 18px; font-weight: 650; color: #0b4f47; line-height: 1.25; margin-top: 2px; }
+  .fact-detail { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  #rail { width: 44px; flex: none; display: flex; flex-direction: column; gap: 3px; background: #fff; box-shadow: 2px 0 6px rgba(0, 0, 0, .18); z-index: 500; }
+  .rail-tab { flex: 1; border: 0; color: #fff; font: inherit; font-size: 15px; font-weight: 700; letter-spacing: .04em; cursor: pointer; padding: 0; transition: filter .15s; }
+  .rail-tab[data-view="facts"] { background: #0f6b60; }
+  .rail-tab[data-view="ideas"] { background: #b96a00; }
+  .rail-tab[data-view="trips"] { background: #5b4bb5; }
+  .rail-tab:hover { filter: brightness(1.15); }
+  .rail-tab[aria-expanded="true"] { box-shadow: inset 5px 0 0 rgba(255, 255, 255, .85); filter: brightness(.82); }
+  .rail-tab span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+  .rail-tab span::before { content: '▸'; display: inline-block; margin-bottom: 8px; font-size: 13px; }
+  .rail-tab[aria-expanded="true"] span::before { content: '◂'; }
+  #ideas-query { width: 100%; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 14px; color: var(--ink); background: var(--panel); }
+  .ideas-heading { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 2px; }
+  .ideas-heading:first-child { margin-top: 0; }
+  .idea-wrap { border-top: 1px solid var(--line); padding: 10px 0; }
+  .idea { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .idea-add { margin-top: 8px; font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .idea-add:hover { border-color: #b58900; }
+  .idea-on { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .idea:hover .idea-name { text-decoration: underline; }
+  .idea-name { font-size: 16px; font-weight: 650; color: #9a5b00; }
+  .idea-why { font-size: 12px; color: #9a5b00; margin-top: 1px; }
+  .idea-pitch, .idea-cities { font-size: 13px; margin-top: 4px; }
+  .idea-cities { color: var(--muted); }
+  .ideas-note { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
+  .legend { background: var(--panel); padding: 8px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); font-size: 12px; }
+  .legend-title { font-weight: 600; margin-bottom: 5px; }
+  .legend-bar { width: 160px; height: 10px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .15); }
+  .legend-gap { height: 8px; }
+  .legend-key { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .legend-key span { display: flex; align-items: center; gap: 6px; }
+  .legend-key svg { width: 14px; height: 14px; flex: none; }
+  .pin.cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #d9534a; border: 2px solid #fff; color: #fff; font-size: 12.5px; font-weight: 700; }
+  .counter.parks b { color: #2e8b47; }
+  .counter.wishes b { color: #b58900; }
+  .counter[hidden] { display: none; }
+  .popup-wish { display: inline-block; background: #f2c230; color: #3d2e00; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 9px; margin: 3px 0 1px; }
+  .legend-ends { display: flex; justify-content: space-between; color: var(--muted); margin-top: 2px; }
+  .legend-hint { display: none; color: var(--muted); margin-top: 6px; max-width: 160px; }
+  .pins-hidden .legend-hint { display: block; }
+  .city-label { background: rgba(255, 255, 255, .92); border: 0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); padding: 1px 6px; font-size: 12px; font-weight: 600; color: var(--ink); }
+  .city-label::before { display: none; }
+  .labels-hidden .city-label { display: none; }
+  .pin { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+  .leaflet-popup-content { margin: 12px 14px; font-size: 14px; line-height: 1.4; }
+  .popup-name { font-weight: 650; font-size: 15px; }
+  .popup-date { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+  .popup-notes { margin-top: 6px; }
+
+  /* Dark mode: near-black chrome, bright shading and glowing pins. */
+  body.dark { --ink: #e6ecef; --muted: #93a1ab; --panel: #171c21; --line: #2a323a; --visited: #3fd6c0; --accent: #ff7a6e; background: #0d1114; color-scheme: dark; }
+  .dark #map { background: #0d1114; }
+  .dark .counter { background: #1f262c; }
+  .dark .counter[aria-pressed="true"] { border-color: #4a5661; }
+  .dark .counter:hover, .dark .counter[aria-pressed="true"],
+  .dark #add-open:hover, .dark #theme-toggle:hover, .dark .tool:hover, .dark #add-cancel:hover, .dark .share-menu button:hover { background: #222a31; }
+  .dark #add-save { background: #1f9c8b; border-color: #1f9c8b; }
+  .dark #add-error { color: #ff8a80; }
+  .dark #status.warn { color: #f0b45a; }
+  .dark .fact-value { color: #5fe3cf; }
+  .dark #rail { background: #0d1114; box-shadow: 2px 0 6px rgba(0, 0, 0, .6); }
+  .dark .idea-name, .dark .idea-why { color: #f0b45a; }
+  .dark .counter.wishes b { color: #f2c230; }
+  .dark .city-label { background: rgba(23, 28, 33, .92); box-shadow: 0 0 0 1px rgba(255, 255, 255, .14); }
+  .dark .legend { box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), 0 2px 8px rgba(0, 0, 0, .6); }
+  .dark .legend-bar { border-color: rgba(255, 255, 255, .2); }
+  .dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip { background: #171c21; color: var(--ink); box-shadow: 0 3px 14px rgba(0, 0, 0, .7); }
+  .dark .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+  .dark .leaflet-bar a { background: #171c21; color: var(--ink); border-bottom-color: #2a323a; }
+  .dark .leaflet-bar a:hover { background: #222a31; }
+  .dark .leaflet-bar a.leaflet-disabled { background: #12161a; color: #55606a; }
+  .dark .leaflet-control-attribution { background: rgba(13, 17, 20, .75); color: var(--muted); }
+  .dark .leaflet-control-attribution a { color: #9fd8cf; }
+  .dark .leaflet-overlay-pane canvas { filter: drop-shadow(0 0 5px rgba(72, 255, 222, .4)); }
+  .dark .pin { filter: drop-shadow(0 0 4px rgba(255, 122, 110, .95)) drop-shadow(0 0 10px rgba(255, 90, 70, .55)); }
+  .dark .pin.park { filter: drop-shadow(0 0 4px rgba(90, 230, 130, .9)) drop-shadow(0 0 10px rgba(46, 139, 71, .6)); }
+  .dark .pin.home { filter: drop-shadow(0 0 4px rgba(120, 170, 255, .95)) drop-shadow(0 0 10px rgba(47, 111, 214, .6)); }
+  .dark .counter.parks b { color: #5fd67f; }
+  .dark .pin.wish { filter: drop-shadow(0 0 4px rgba(255, 214, 80, .95)) drop-shadow(0 0 10px rgba(242, 194, 48, .55)); }
+
+  #search { font: inherit; font-size: 14px; color: var(--ink); width: 210px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+  .tool[hidden] { display: none; }
+  #share { position: relative; }
+  #share summary { list-style: none; display: inline-block; }
+  #share summary::-webkit-details-marker { display: none; }
+  .share-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1200; display: flex; flex-direction: column; min-width: 230px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 6px 20px rgba(0, 0, 0, .2); }
+  .share-menu button { font: inherit; font-size: 13.5px; text-align: left; padding: 8px 10px; border: 0; border-radius: 5px; background: none; color: var(--ink); cursor: pointer; }
+  .read-only #add-open, .read-only #share, .read-only .popup-edit, .read-only .idea-add { display: none; }
+  #add-delete { margin-right: auto; color: #a12b22; }
+  .dark #add-delete { color: #ff8a80; }
+  #kept-date { font-size: 12.5px; color: var(--muted); }
+  #kept-date[hidden] { display: none; }
+  #add-dialog { max-height: calc(100vh - 32px); overflow-y: auto; }
+  .popup-photo { display: block; width: 100%; max-width: 240px; max-height: 160px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+  .popup-link { display: inline-block; margin-top: 6px; font-size: 13px; }
+  .popup-edit { display: block; margin-top: 10px; font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  #trip-search { width: 100%; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; color: var(--ink); background: var(--panel); }
+  #trip-none { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  #trip-none[hidden], .trip-row[hidden] { display: none; }
+  #trip-tools { margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
+  #trip-merge { display: flex; gap: 6px; }
+  #trip-merge[hidden], .read-only #trip-tools, .read-only .trip-pick { display: none; }
+  #trip-new-name { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--ink); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+  #trip-apply { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid #5b4bb5; background: #5b4bb5; color: #fff; cursor: pointer; }
+  #trip-apply:disabled { opacity: .6; cursor: default; }
+  #trip-error { color: #a12b22; margin-top: 4px; }
+  .dark #trip-error { color: #ff8a80; }
+  #trip-error:empty { display: none; }
+  .trip-row { display: flex; align-items: flex-start; gap: 6px; border-top: 1px solid var(--line); }
+  .trip-pick { margin: 13px 0 0; flex: none; }
+  .trip-main { flex: 1; min-width: 0; }
+  .trip-add { font: inherit; font-size: 12px; font-weight: 600; color: #5b4bb5; background: none; border: 0; padding: 0 0 9px 14px; cursor: pointer; }
+  .trip-add:hover { text-decoration: underline; }
+  .dark .trip-add { color: #a99cf0; }
+  .read-only .trip-add { display: none; }
+  .trip { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-left: 4px solid transparent; padding: 9px 0 9px 10px; cursor: pointer; min-width: 0; }
+  .trip[aria-pressed="true"] { background: rgba(120, 120, 140, .12); }
+  .trip-name { font-size: 15px; font-weight: 650; }
+  .trip-meta, .trip-stops { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .play-year { font-size: 44px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); background: var(--panel); padding: 2px 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, .25); }
+  .play-year:empty { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Travel Map</h1>
+  <div class="counters">
+    <button type="button" class="counter countries" data-list="countries" title="Show the list of countries"><b id="n-countries">–</b><span>Countries visited</span></button>
+    <button type="button" class="counter cities" data-list="cities" title="Show the list of cities"><b id="n-cities">–</b><span>Cities visited</span></button>
+    <button type="button" class="counter parks" data-list="parks" id="park-counter" title="Show the list of national parks" hidden><b id="n-parks">0</b><span>National parks</span></button>
+    <button type="button" class="counter wishes" data-list="wishes" id="wish-counter" title="Show the wish list" hidden><b id="n-wishes">0</b><span>On the wish list</span></button>
+  </div>
+  <input id="search" type="search" list="search-names" placeholder="Search a city or country" aria-label="Search a city or country">
+  <datalist id="search-names"></datalist>
+  <label id="year-filter" hidden>Year <select id="year"><option value="">All years</option></select></label>
+  <button id="play" type="button" class="tool" hidden>&#9654; Play timeline</button>
+  <button id="add-open" type="button">+ Add place</button>
+  <button id="wish-toggle" type="button" class="tool" aria-pressed="true" hidden>Hide wish list</button>
+  <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+  <details id="share">
+    <summary class="tool">Share</summary>
+    <div class="share-menu">
+      <button id="save-image" type="button">Save this view as an image</button>
+      <button id="export-file" type="button">Export as one file to send</button>
+    </div>
+  </details>
+  <span id="sample-note" hidden>Sample data</span>
+  <div id="status">Loading…</div>
+  <input type="file" id="file" accept=".csv,text/csv" hidden>
+</header>
+<dialog id="add-dialog">
+  <form id="add-form" method="dialog">
+    <h2 id="add-title">Add a place</h2>
+    <label>Status
+      <select name="status"><option value="">Visited</option><option value="wishlist">Wish list (want to visit)</option></select>
+    </label>
+    <label>Kind
+      <select name="kind"><option value="city">City or town</option><option value="park">National park</option><option value="home">Home (where I live)</option></select>
+    </label>
+    <label>Name <input name="city" autocomplete="off" placeholder="Lisbon (leave blank to add only the country)"></label>
+    <label>Country <input name="country" required autocomplete="off" list="country-names" placeholder="Start typing or pick from the list"></label>
+    <datalist id="country-names"></datalist>
+    <label>State / region <input name="state" autocomplete="off" list="state-names" placeholder="Optional"></label>
+    <datalist id="state-names"></datalist>
+    <div class="add-dates visited-only">
+      <label>First day <input name="from" type="date"></label>
+      <label>Last day <input name="to" type="date"></label>
+    </div>
+    <div id="kept-date" class="visited-only" hidden></div>
+    <label>Trip <input name="trip" list="trip-names" autocomplete="off" placeholder="Optional, e.g. Greece 2021"></label>
+    <datalist id="trip-names"></datalist>
+    <label>Notes <textarea name="notes" rows="2" placeholder="Optional"></textarea></label>
+    <label>Photo <input name="photo" autocomplete="off" placeholder="Optional web address of a photo"></label>
+    <label>Link <input name="link" autocomplete="off" placeholder="Optional web address"></label>
+    <div id="add-error" role="alert"></div>
+    <div class="add-actions">
+      <button type="button" id="add-delete" hidden>Delete</button>
+      <button type="button" id="add-cancel">Cancel</button>
+      <button type="submit" id="add-save">Save to places.csv</button>
+    </div>
+  </form>
+</dialog>
+<div id="main">
+  <aside id="panel" hidden>
+    <section id="facts">
+      <h2>Fun facts <span id="facts-scope"></span></h2>
+      <div id="facts-list"></div>
+    </section>
+    <section id="lists" hidden>
+      <h2 id="lists-title"></h2>
+      <div id="lists-body"></div>
+    </section>
+    <section id="trips" hidden>
+      <h2>Trips</h2>
+      <input id="trip-search" type="search" placeholder="Search trips by name, year or stop" aria-label="Search trips">
+      <div id="trip-none" hidden>No trips match.</div>
+      <div id="trip-tools">
+        <div id="trip-hint">Tick one trip to rename it, or several to combine them.</div>
+        <div id="trip-merge" hidden>
+          <input id="trip-new-name" autocomplete="off" aria-label="Trip name" maxlength="80">
+          <button id="trip-apply" type="button">Combine</button>
+        </div>
+        <div id="trip-error" role="alert"></div>
+      </div>
+      <div id="trips-list"></div>
+    </section>
+    <section id="ideas" hidden>
+      <h2>Where next</h2>
+      <input id="ideas-query" type="search" placeholder="Describe a trip: beach, food, hiking…" aria-label="Describe the trip you want">
+      <div id="ideas-list"></div>
+    </section>
+  </aside>
+  <div id="rail">
+    <button class="rail-tab" type="button" data-view="facts" aria-expanded="false" aria-controls="panel"><span>Fun facts</span></button>
+    <button class="rail-tab" type="button" data-view="trips" aria-expanded="false" aria-controls="panel"><span>Trips</span></button>
+    <button class="rail-tab" type="button" data-view="ideas" aria-expanded="false" aria-controls="panel"><span>Where next</span></button>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+const CSV_URL = 'places.csv';
+// Shown when there is no places.csv, as on the public demo site.
+const SAMPLE_URL = 'places.sample.csv';
+const BORDERS_URL = 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_admin_0_countries.geojson';
+const STATES_URL = 'https://cdn.jsdelivr.net/gh/PublicaMundi/MappingAPI@master/data/geojson/us-states.json';
+// Home country: drawn in gray and broken down by state instead of joining the green scale.
+const HOME_ISO = 'USA';
+const STATE_CODES = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut',
+  DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois',
+  IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+  NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York',
+  NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania',
+  RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
+  VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', PR: 'Puerto Rico'
+};
+const GEOCODE_URL = 'https://nominatim.openstreetmap.org/search';
+
+// Common names the border dataset doesn't carry, mapped to its ISO-3 codes.
+const ALIASES = {
+  america: 'USA', unitedstates: 'USA', uk: 'GBR', britain: 'GBR', greatbritain: 'GBR',
+  england: 'GBR', scotland: 'GBR', wales: 'GBR', northernireland: 'GBR',
+  czechrepublic: 'CZE', holland: 'NLD', burma: 'MMR', ivorycoast: 'CIV',
+  turkiye: 'TUR', turkey: 'TUR', uae: 'ARE', korea: 'KOR', southkorea: 'KOR',
+  northkorea: 'PRK', drc: 'COD', macau: 'MAC', macao: 'MAC', swaziland: 'SWZ',
+  capeverde: 'CPV', easttimor: 'TLS', vaticancity: 'VAT', bahamas: 'BHS', gambia: 'GMB'
+};
+const NAME_PROPS = ['NAME', 'NAME_LONG', 'ADMIN', 'NAME_EN', 'BRK_NAME', 'FORMAL_EN',
+                    'ISO_A2', 'ISO_A2_EH', 'ISO_A3', 'ISO_A3_EH', 'ADM0_A3'];
+
+const $ = id => document.getElementById(id);
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]/g, '');
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Shapes are drawn on a canvas (not SVG) so "Save this view as an image" captures them in place.
+const map = L.map('map', { worldCopyJump: true, minZoom: 2, maxZoom: 16, preferCanvas: true }).setView([25, 10], 2);
+// Plain light-gray base map; its place names sit in their own pane above the shading.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas';
+let dark = false;
+try { dark = localStorage.getItem('travel-map-theme') === 'dark'; } catch {}
+const tileUrl = kind => `${ESRI}/World_${dark ? 'Dark' : 'Light'}_Gray_${kind}/MapServer/tile/{z}/{y}/{x}`;
+const baseTiles = L.tileLayer(tileUrl('Base'), {
+  maxZoom: 16,
+  crossOrigin: true,
+  attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
+}).addTo(map);
+map.createPane('labels').style.zIndex = 450;
+map.getPane('labels').style.pointerEvents = 'none';
+// Country and major-city names from the tiles, drawn above the shading in their own soft gray.
+// They stay faint at the world view and strengthen as you zoom in; the shading thins to match.
+const labelTiles = L.tileLayer(tileUrl('Reference'), { maxZoom: 16, pane: 'labels', crossOrigin: true }).addTo(map);
+const ease = (zoom, from, to, lo, hi) => lo + (hi - lo) * Math.min(1, Math.max(0, (zoom - from) / (to - from)));
+function syncDepth() {
+  const zoom = map.getZoom();
+  map.getPane('labels').style.opacity = ease(zoom, 2, 6, 0.3, 1);
+  const k = ease(zoom, 3, 6, 1, 0.68);
+  countryLayer.eachLayer(g => g.eachLayer(l => {
+    if (l.options.baseFill) l.setStyle({ fillOpacity: l.options.baseFill * k });
+  }));
+}
+map.on('zoomend', syncDepth);
+
+const countryLayer = L.layerGroup().addTo(map);
+const recLayer = L.layerGroup();
+const tripLayer = L.layerGroup();
+let playUpTo = '';
+// Nearby pins merge into a numbered bubble that splits apart as you zoom in.
+const cityLayer = L.markerClusterGroup({
+  maxClusterRadius: 46,
+  showCoverageOnHover: false,
+  iconCreateFunction: c => L.divIcon({ className: 'pin cluster', html: `<span>${c.getChildCount()}</span>`, iconSize: [30, 30] })
+});
+// City pins only appear once zoomed in, so the world view shows the shading unobstructed.
+const PIN_ZOOM = 4;
+// Name labels need a little more room than the pins to stay readable.
+const LABEL_ZOOM = 5;
+function syncPins() {
+  const show = map.getZoom() >= PIN_ZOOM || !!playUpTo;
+  if (show !== map.hasLayer(cityLayer)) show ? map.addLayer(cityLayer) : map.removeLayer(cityLayer);
+  document.body.classList.toggle('pins-hidden', !show);
+  document.body.classList.toggle('labels-hidden', map.getZoom() < LABEL_ZOOM);
+}
+map.on('zoomend', syncPins);
+syncPins();
+// Marker artwork by kind: dot = visited city, star = wish list, tree = national park, house = home.
+const ART = {
+  dot: '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="#d9534a" stroke="#fff" stroke-width="2"/></svg>',
+  star: '<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 1.8l3.1 6.4 7 1-5.1 4.9 1.2 7L12 17.8 5.8 21.1l1.2-7L1.9 9.2l7-1z" fill="#f2c230" stroke="#6b5200" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  tree: '<svg width="22" height="22" viewBox="0 0 24 24"><rect x="10.5" y="17" width="3" height="5.5" fill="#7a5230" stroke="#fff" stroke-width=".800"/><path d="M12 1.500l5.500 7h-2.800l4.300 5.500h-3l4 5H4l4-5H5l4.300-5.500H6.500z" fill="#2e8b47" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  house: '<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2.500L1.800 11.500h3V21h5.700v-6h3v6h5.700v-9.500h3z" fill="#2f6fd6" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+};
+const makePin = (art, size, className = 'pin') => L.divIcon({
+  className, html: ART[art], iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2]
+});
+const ICONS = {
+  city: makePin('dot', 14), wish: makePin('star', 22, 'pin wish'), park: makePin('tree', 22, 'pin park'), home: makePin('house', 22, 'pin home')
+};
+const iconFor = p => ICONS[p.kind === 'home' ? 'home' : p.wish ? 'wish' : p.kind === 'park' ? 'park' : 'city'];
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  text = text.replace(/^﻿/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); rows.push(row); row = []; field = '';
+    } else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+
+function readPlaces(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return [];
+  const header = rows[0].map(norm);
+  const col = (...names) => header.findIndex(h => names.includes(h));
+  const idx = {
+    name: col('name', 'place', 'location', 'title'),
+    type: col('type', 'kind', 'category'),
+    date: col('date', 'visited', 'datevisited', 'when'),
+    notes: col('notes', 'note', 'description', 'comments', 'comment'),
+    lat: col('lat', 'latitude'),
+    lng: col('lng', 'lon', 'long', 'longitude'),
+    country: col('country'),
+    state: col('state', 'province', 'region', 'stateprovince'),
+    status: col('status', 'wishlist'),
+    trip: col('trip', 'tripname'),
+    photo: col('photo', 'image', 'picture', 'photourl'),
+    link: col('link', 'url', 'website')
+  };
+  if (idx.name < 0 || idx.type < 0) throw new Error('places.csv needs "name" and "type" columns');
+  const get = (r, k) => (idx[k] >= 0 ? (r[idx[k]] ?? '').trim() : '');
+  const num = v => (v === '' || isNaN(+v) ? null : +v);
+  return rows.slice(1).map((r, i) => ({
+    row: i + 1,
+    trip: get(r, 'trip'),
+    photo: get(r, 'photo'),
+    link: get(r, 'link'),
+    name: get(r, 'name'),
+    type: get(r, 'type').toLowerCase(),
+    date: get(r, 'date'),
+    notes: get(r, 'notes'),
+    lat: num(get(r, 'lat')),
+    lng: num(get(r, 'lng')),
+    country: get(r, 'country'),
+    state: get(r, 'state'),
+    wish: /wish|want|yes|^x$/i.test(get(r, 'status'))
+  })).map(p => ({
+    ...p,
+    kind: p.type === 'country' ? 'country' : /park/.test(p.type) ? 'park' : /home/.test(p.type) ? 'home' : p.type === 'city' ? 'city' : 'other'
+  })).filter(p => p.name);
+}
+
+// Links must be web addresses; photos may also be a file next to the page (photos/lisbon.jpg).
+const webUrl = u => (/^https?:\/\//i.test(u) ? u : '');
+const photoUrl = u => webUrl(u) || (u && !u.includes(':') && !u.startsWith('/') ? u : '');
+function popupHtml(p) {
+  const photo = photoUrl(p.photo), link = webUrl(p.link);
+  return (photo ? `<img class="popup-photo" src="${esc(photo)}" alt="" loading="lazy">` : '') +
+    `<div class="popup-name">${esc(p.name)}</div>` +
+    (p.wish ? '<div class="popup-wish">Wish list</div>' : '') +
+    (p.kind === 'park' ? '<div class="popup-date">National park</div>' : p.kind === 'home' ? '<div class="popup-date">Home</div>' : '') +
+    (p.state ? `<div class="popup-date">${esc(p.state)}</div>` : '') +
+    (p.date ? `<div class="popup-date">${esc(p.date)}</div>` : '') +
+    (p.trip ? `<div class="popup-date">Trip: ${esc(p.trip)}</div>` : '') +
+    (p.notes ? `<div class="popup-notes">${esc(p.notes)}</div>` : '') +
+    (link ? `<a class="popup-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(new URL(link).hostname.replace(/^www\./, ''))} &#8599;</a>` : '') +
+    (p.row ? `<button class="popup-edit" type="button" data-row="${p.row}">Edit</button>` : '');
+}
+
+// "3 cities", or "3 places" once a national park is among them.
+function countLabel(m) {
+  const n = m.cities.length, parks = m.pins.some(p => p.kind === 'park');
+  return `${n} ${parks ? (n === 1 ? 'place' : 'places') : (n === 1 ? 'city' : 'cities')}`;
+}
+
+function countryPopupHtml(m) {
+  const n = m.cities.length;
+  return `<div class="popup-name">${esc(m.name)}</div>` +
+    `<div class="popup-date">${countLabel(m)} visited${m.date ? ' · ' + esc(m.date) : ''}</div>` +
+    (n ? `<div class="popup-notes">${esc(m.cities.join(', '))}</div>` : '') +
+    (m.notes ? `<div class="popup-notes">${esc(m.notes)}</div>` : '');
+}
+
+// Light-to-dark ramps: t = 0 for the fewest cities, 1 for the most.
+const ramp = (low, high) => t => {
+  t = Math.min(1, Math.max(0, t));
+  return `rgb(${low.map((lo, i) => Math.round(lo + (high[i] - lo) * t)).join(',')})`;
+};
+// Map colours per theme. Light: more cities = darker. Dark: more cities = brighter, so they glow.
+const PALETTES = {
+  light: {
+    heat: ramp([186, 224, 215], [6, 62, 56]), homeHeat: ramp([150, 156, 163], [34, 39, 45]), homeBase: '#bfc4ca',
+    edge: { color: '#fff', opacity: 0.95 }, inner: { color: '#fff', opacity: 0.75 }
+  },
+  dark: {
+    heat: ramp([18, 78, 71], [78, 255, 224]), homeHeat: ramp([88, 95, 103], [228, 232, 237]), homeBase: '#343a41',
+    edge: { color: '#0a0d10', opacity: 1 }, inner: { color: '#0a0d10', opacity: 0.8 }
+  }
+};
+const palette = () => PALETTES[dark ? 'dark' : 'light'];
+const heat = t => palette().heat(t);
+const homeHeat = t => palette().homeHeat(t);
+const EDGE = { weight: 1.2, ...palette().edge };
+const INNER = { weight: 0.9, fill: false, interactive: false, ...palette().inner };
+const scale = (n, max) => (max > 1 ? (n - 1) / (max - 1) : 1);
+
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = () => L.DomUtil.create('div', 'legend');
+function showLegend(max, stateMax) {
+  if (!legend.getContainer()) legend.addTo(map);
+  const bar = (title, color, top) => `<div class="legend-title">${title}</div>` +
+    `<div class="legend-bar" style="background: linear-gradient(to right, ${color(0)}, ${color(1)})"></div>` +
+    `<div class="legend-ends"><span>${top > 1 ? 1 : ''}</span><span>${top}</span></div>`;
+  legend.getContainer().innerHTML = bar('Places visited per country', heat, max) +
+    (stateMax ? `<div class="legend-gap"></div>${bar('Places per US state (home)', homeHeat, stateMax)}` : '') +
+    '<div class="legend-key"><span>' + ART.dot + 'Visited city</span>' +
+    (lists.wishes.length && showWishes ? '<span>' + ART.star + 'Wish list</span>' : '') +
+    (lists.parks.length ? '<span>' + ART.tree + 'National park</span>' : '') +
+    (lists.homes.length ? '<span>' + ART.house + 'Home</span>' : '') + '</div>' +
+    '<div class="legend-hint">Zoom in or click a country to see its cities</div>';
+}
+
+const UNITS_URL = 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_admin_0_map_units.geojson';
+let unitsPromise;
+function loadUnits() {
+  unitsPromise ??= fetch(UNITS_URL).then(r => (r.ok ? r.json() : Promise.reject()));
+  return unitsPromise;
+}
+// Faint lines for the parts of a visited country (England/Scotland/Wales, Flanders/Wallonia, ...).
+async function drawUnits(matched, id) {
+  const units = await loadUnits();
+  if (id !== drawId) return;
+  const visited = new Set([...matched.keys()].map(f => f.properties.ADM0_A3));
+  visited.delete(HOME_ISO);
+  const perCountry = new Map();
+  for (const u of units.features) {
+    const iso = u.properties.ADM0_A3;
+    if (visited.has(iso)) perCountry.set(iso, [...(perCountry.get(iso) || []), u]);
+  }
+  for (const parts of perCountry.values()) {
+    if (parts.length > 1) L.geoJSON(parts, { style: INNER, interactive: false }).addTo(countryLayer);
+  }
+}
+
+let statesPromise;
+function loadStates() {
+  statesPromise ??= fetch(STATES_URL).then(r => {
+    if (!r.ok) throw new Error('Could not load US state borders');
+    return r.json();
+  });
+  return statesPromise;
+}
+
+// Home country: pale gray base, with each state that has cities shaded on the gray scale.
+async function drawHome(home) {
+  const feature = byIso.get(HOME_ISO);
+  if (!feature) return 0;
+  const m = home || { name: feature.properties.NAME, date: '', notes: '', cities: [], pins: [] };
+  const n = m.cities.length;
+  L.geoJSON(feature, { style: { ...EDGE, fillColor: palette().homeBase, fillOpacity: 0.9, baseFill: 0.9 } })
+    .bindPopup(`<div class="popup-name">${esc(m.name)}</div><div class="popup-date">Home${n ? ` · ${countLabel(m)}` : ''}</div>`, { autoPan: false })
+    .on('click', e => (m.pins.length ? zoomToCountry(e.target, m) : map.flyToBounds(mainBounds(feature), { duration: 0.6 })))
+    .addTo(countryLayer);
+  const states = await loadStates();
+  L.geoJSON(states, { style: INNER, interactive: false }).addTo(countryLayer);
+  if (!m.pins.length) return 0;
+
+  const byName = new Map(states.features.map(f => [norm(f.properties.name), f]));
+  const groups = new Map();
+  for (const c of m.pins) {
+    const f = byName.get(norm(STATE_CODES[c.state.toUpperCase()] || c.state));
+    if (!f) continue;
+    if (!groups.has(f)) groups.set(f, { name: f.properties.name, date: '', notes: '', cities: [], pins: [] });
+    groups.get(f).cities.push(c.name);
+    groups.get(f).pins.push(c);
+  }
+  const max = Math.max(0, ...[...groups.values()].map(g => g.cities.length));
+  for (const [f, g] of groups) {
+    L.geoJSON(f, {
+      style: { ...EDGE, fillColor: homeHeat(scale(g.cities.length, max)), fillOpacity: 0.9, baseFill: 0.9 }
+    }).bindPopup(countryPopupHtml(g), { autoPan: false }).on({
+      click: e => zoomToCountry(e.target, g),
+      mouseover: e => e.target.setStyle({ weight: 2.5 }),
+      mouseout: e => e.target.setStyle({ weight: EDGE.weight })
+    }).addTo(countryLayer);
+  }
+  return max;
+}
+
+// Frames the country's visited cities (or its outline if none are located yet),
+// so overseas territories don't drag the view out.
+function zoomToCountry(layer, m) {
+  const points = m.pins.filter(c => c.lat !== null && c.lng !== null).map(c => [c.lat, c.lng]);
+  const bounds = points.length ? L.latLngBounds(points) : layer.getBounds();
+  map.flyToBounds(bounds.pad(0.3), { maxZoom: 8, duration: 0.6 });
+}
+
+let bordersPromise;
+function loadBorders() {
+  bordersPromise ??= fetch(BORDERS_URL).then(r => {
+    if (!r.ok) throw new Error('Could not load country borders');
+    return r.json();
+  });
+  return bordersPromise;
+}
+
+const byKey = new Map(), byIso = new Map();
+function indexBorders(world) {
+  if (byIso.size) return;
+  for (const f of world.features) {
+    byIso.set(f.properties.ADM0_A3, f);
+    for (const k of NAME_PROPS) {
+      const key = norm(f.properties[k]);
+      if (key && key !== '99' && !byKey.has(key)) byKey.set(key, f);
+    }
+  }
+}
+function findCountry(name) {
+  const key = norm(name);
+  return byKey.get(key) || byIso.get(ALIASES[key]) || byKey.get(key.replace(/^the/, ''));
+}
+
+async function drawCountries(countries) {
+  const world = await loadBorders();
+  indexBorders(world);
+  const missing = [];
+  const matched = new Map();
+  for (const p of countries) {
+    const feature = findCountry(p.name);
+    if (!feature) { missing.push(p.name); continue; }
+    const m = matched.get(feature);
+    if (m) { m.cities.push(...p.cities); m.pins.push(...p.pins); }
+    else matched.set(feature, { ...p, cities: [...p.cities], pins: [...p.pins] });
+  }
+  const home = byIso.get(HOME_ISO);
+  const abroad = [...matched].filter(([feature]) => feature !== home);
+  const max = Math.max(1, ...abroad.map(([, m]) => m.cities.length));
+  for (const [feature, m] of abroad) {
+    L.geoJSON(feature, {
+      style: { ...EDGE, fillColor: heat(scale(m.cities.length, max)), fillOpacity: 0.9, baseFill: 0.9 }
+    }).bindPopup(countryPopupHtml(m), { autoPan: false }).on({
+      click: e => zoomToCountry(e.target, m),
+      mouseover: e => e.target.setStyle({ weight: 2.5 }),
+      mouseout: e => e.target.setStyle({ weight: EDGE.weight })
+    }).addTo(countryLayer);
+  }
+  const stateMax = await drawHome(matched.get(home)).catch(() => 0);
+  showLegend(max, stateMax);
+  return { missing, matched, world };
+}
+
+// An exported copy of this page carries its data and coordinates inside it and is read-only.
+const EMBEDDED = (() => {
+  try { return JSON.parse(document.getElementById('embedded-places').textContent); } catch { return null; }
+})();
+// Editing goes through server.py, which only runs on your own computer.
+const LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+const READ_ONLY = !!EMBEDDED || !LOCAL;
+document.body.classList.toggle('read-only', READ_ONLY);
+
+function geocodeCache() {
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem('travel-map-geocode') || '{}'); } catch {}
+  return { ...(EMBEDDED?.coords || {}), ...stored };
+}
+
+// Cities without lat/lng columns are looked up by name, one per second, and remembered.
+async function locateCities(cities, onProgress) {
+  const cache = geocodeCache();
+  const todo = cities.filter(p => p.lat === null || p.lng === null);
+  const missing = [];
+  let done = 0, fetched = false;
+  for (const p of todo) {
+    const q = [p.name, p.state, p.country].filter(Boolean).join(', ');
+    onProgress(++done, todo.length);
+    if (!(q in cache)) {
+      if (fetched) await new Promise(r => setTimeout(r, 1100));
+      fetched = true;
+      try {
+        const res = await fetch(`${GEOCODE_URL}?format=json&limit=1&q=${encodeURIComponent(q)}`);
+        const hit = (await res.json())[0];
+        cache[q] = hit ? [+hit.lat, +hit.lon] : null;
+        try { localStorage.setItem('travel-map-geocode', JSON.stringify(cache)); } catch {}
+      } catch { /* leave uncached so it retries next load */ }
+    }
+    if (cache[q]) [p.lat, p.lng] = cache[q];
+    else missing.push(p.name);
+  }
+  return missing;
+}
+
+const yearOf = p => (p.date.match(/\b(?:19|20)\d{2}\b/) || [''])[0];
+let allPlaces = [], unlocated = [], drawId = 0, keepView = false, lastCsv = '';
+let showWishes = true;
+try { showWishes = localStorage.getItem('travel-map-wishes') !== 'off'; } catch {}
+let lists = { countries: [], cities: [], parks: [], wishes: [], homes: [] }, listKind = '', listActions = [];
+
+async function render(text) {
+  const status = $('status');
+  status.className = '';
+  allPlaces = readPlaces(text);
+  lastCsv = text;
+
+  const years = [...new Set(allPlaces.map(yearOf).filter(Boolean))].sort();
+  const select = $('year');
+  const previous = select.value;
+  select.innerHTML = '<option value="">All years</option>' + years.map(y => `<option>${y}</option>`).join('');
+  select.value = years.includes(previous) ? previous : '';
+  $('year-filter').hidden = !years.length;
+  $('play').hidden = years.length < 2;
+  const names = new Set(allPlaces.flatMap(p => [p.name, p.country]).filter(Boolean));
+  $('search-names').innerHTML = [...names].sort().map(n => `<option value="${esc(n)}">`).join('');
+
+  const drawn = draw();
+  unlocated = await locateCities(allPlaces.filter(p => ['city', 'park', 'home'].includes(p.kind)),
+    (i, n) => { status.textContent = `Locating places ${i}/${n}…`; });
+  await drawn;
+  await draw();
+  showIdeas();
+  showTrips();
+}
+
+// Redraws shading, pins and counters for the year picked in the header.
+async function draw() {
+  const id = ++drawId;
+  const status = $('status');
+  const year = $('year').value;
+  // Wish-list places stay out of the visited counts, shading and facts, and ignore the year filter.
+  const homes = allPlaces.filter(p => p.kind === 'home');
+  const wishes = playUpTo ? [] : allPlaces.filter(p => p.wish && p.kind !== 'home');
+  const been = allPlaces.filter(p => !p.wish && p.kind !== 'home');
+  // Timeline playback shows everything up to the year it has reached.
+  const places = playUpTo ? been.filter(p => yearOf(p) && yearOf(p) <= playUpTo)
+    : year ? been.filter(p => yearOf(p) === year) : been;
+  const countries = places.filter(p => p.type === 'country').map(p => ({ ...p, cities: [], pins: [] }));
+  const cities = places.filter(p => p.type === 'city');
+  const parks = places.filter(p => p.kind === 'park');
+  // A city's or park's country column counts as a visited country even without its own country row.
+  const listed = new Map(countries.map(p => [norm(p.name), p]));
+  for (const c of [...cities, ...parks]) {
+    const key = norm(c.country);
+    if (!key) continue;
+    if (!listed.has(key)) {
+      const implied = { name: c.country, date: '', notes: '', cities: [], pins: [] };
+      listed.set(key, implied);
+      countries.push(implied);
+    }
+    listed.get(key).cities.push(c.name);
+    listed.get(key).pins.push(c);
+  }
+  $('n-countries').textContent = listed.size;
+  $('n-cities').textContent = cities.length;
+  lists = { countries, cities, parks, wishes, homes };
+  $('n-wishes').textContent = wishes.length;
+  $('wish-counter').hidden = !wishes.length;
+  $('wish-toggle').hidden = !wishes.length;
+  $('wish-toggle').textContent = showWishes ? 'Hide wish list' : 'Show wish list';
+  $('wish-toggle').setAttribute('aria-pressed', showWishes);
+  // The header switch takes wish-list places off the map; the counter and list keep them.
+  const wishesOnMap = showWishes ? wishes : [];
+  $('n-parks').textContent = parks.length;
+  $('park-counter').hidden = !parks.length;
+
+  const problems = [];
+  await loadBorders().catch(() => {});
+  if (id !== drawId) return;
+  countryLayer.clearLayers();
+  cityLayer.clearLayers();
+  const { missing: noShape, matched, world } = await drawCountries(countries)
+    .catch(e => { problems.push(e.message); return { missing: [], matched: new Map(), world: null }; });
+  showFacts(cities, matched, world, year);
+  drawUnits(matched, id).catch(() => {});
+  const points = [...cities, ...parks, ...wishesOnMap.filter(p => p.kind !== 'country'), ...homes];
+  const noCoords = points.filter(p => unlocated.includes(p.name)).map(p => p.name);
+  if (noShape.length) problems.push(`No border match: ${noShape.join(', ')}`);
+  if (noCoords.length) problems.push(`Couldn't locate: ${noCoords.join(', ')}`);
+
+  for (const p of wishesOnMap.filter(w => w.type === 'country')) {
+    const feature = findCountry(p.name);
+    if (!feature || matched.has(feature)) continue;
+    L.geoJSON(feature, { style: { color: '#b58900', weight: 1.5, fillColor: '#f2c230', fillOpacity: 0.45, baseFill: 0.45 } })
+      .bindPopup(popupHtml(p), { autoPan: false }).addTo(countryLayer);
+  }
+
+  syncDepth();
+
+  const pins = [];
+  for (const p of points) {
+    if (p.lat === null || p.lng === null) continue;
+    const icon = iconFor(p);
+    p.marker = L.marker([p.lat, p.lng], { icon, title: p.name }).bindPopup(popupHtml(p))
+      .bindTooltip(esc(p.name), { permanent: true, direction: 'right', offset: [icon.options.iconSize[0] / 2 + 3, 0], className: 'city-label' });
+    pins.push(p.marker);
+  }
+  cityLayer.addLayers(pins);
+  if (pins.length && !keepView && !playUpTo) map.fitBounds(L.featureGroup(pins).getBounds().pad(0.25), { maxZoom: 5 });
+
+  status.textContent = problems.join(' · ');
+  status.className = problems.length ? 'warn' : '';
+  if (openView === 'lists') showList();
+}
+
+$('wish-toggle').addEventListener('click', async () => {
+  showWishes = !showWishes;
+  try { localStorage.setItem('travel-map-wishes', showWishes ? 'on' : 'off'); } catch {}
+  keepView = true;
+  try { await draw(); } finally { keepView = false; }
+});
+// Picking a year also opens the side list of everywhere visited that year.
+$('year').addEventListener('change', () => {
+  if (playUpTo) return stopPlay();
+  if ($('year').value) { listKind = 'year'; setView('lists'); }
+  else if (openView === 'lists' && listKind === 'year') setView('');
+  draw();
+});
+
+function km(a, b) {
+  const rad = d => d * Math.PI / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
+// Stats for the side panel, computed from whatever the year filter currently shows.
+function showFacts(cities, matched, world, year) {
+  const facts = [];
+  const add = (label, value, detail = '') => facts.push({ label, value, detail });
+  const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+  const deg = (v, pos, neg) => `${Math.abs(v).toFixed(1)}°${v >= 0 ? pos : neg}`;
+  const entries = [...matched.entries()];
+
+  if (entries.length) {
+    add('World explored', `${(entries.length / 195 * 100).toFixed(1)}%`, `${entries.length} of 195 countries`);
+    const continents = [...new Set(entries.map(([f]) => f.properties.CONTINENT))].sort();
+    add('Continents', `${continents.length} of 7`, continents.join(', '));
+    if (world) {
+      const pop = fs => fs.reduce((sum, f) => sum + (+f.properties.POP_EST || 0), 0);
+      const share = pop(entries.map(([f]) => f)) / pop(world.features) * 100;
+      add('People', `${share.toFixed(0)}%`, "of the world's population lives in countries you've visited");
+    }
+    const most = Math.max(...entries.map(([, m]) => m.cities.length));
+    if (most > 0) {
+      const top = entries.filter(([, m]) => m.cities.length === most).map(([, m]) => m.name);
+      add('Most explored', top.join(' & '), plural(most, 'place', 'places'));
+    }
+  }
+
+  if (!year) {
+    const byYear = new Map();
+    for (const c of cities) {
+      const y = yearOf(c);
+      if (!y) continue;
+      if (!byYear.has(y)) byYear.set(y, { cities: 0, countries: new Set() });
+      byYear.get(y).cities++;
+      if (c.country) byYear.get(y).countries.add(norm(c.country));
+    }
+    const years = [...byYear.keys()].sort();
+    if (years.length) {
+      const busiest = years.reduce((a, b) => (byYear.get(b).cities > byYear.get(a).cities ? b : a));
+      add('Busiest year', busiest, `${plural(byYear.get(busiest).cities, 'city', 'cities')} in ${plural(byYear.get(busiest).countries.size, 'country', 'countries')}`);
+      add('Travelling since', years[0], `${plural(years.length, 'year', 'years')} with trips, latest in ${years[years.length - 1]}`);
+      let gap = 0, gapFrom = '';
+      for (let i = 1; i < years.length; i++) {
+        if (years[i] - years[i - 1] > gap) { gap = years[i] - years[i - 1]; gapFrom = years[i - 1]; }
+      }
+      if (gap > 1) add('Longest break', plural(gap, 'year', 'years'), `between ${gapFrom} and ${+gapFrom + gap}`);
+    }
+  }
+
+  const located = cities.filter(c => c.lat !== null && c.lng !== null);
+  if (located.length > 1) {
+    const pick = better => located.reduce((a, b) => (better(b, a) ? b : a));
+    const north = pick((a, b) => a.lat > b.lat), south = pick((a, b) => a.lat < b.lat);
+    const east = pick((a, b) => a.lng > b.lng), west = pick((a, b) => a.lng < b.lng);
+    add('Northernmost', north.name, deg(north.lat, 'N', 'S'));
+    add('Southernmost', south.name, deg(south.lat, 'N', 'S'));
+    add('Easternmost', east.name, deg(east.lng, 'E', 'W'));
+    add('Westernmost', west.name, deg(west.lng, 'E', 'W'));
+    const equator = pick((a, b) => Math.abs(a.lat) < Math.abs(b.lat));
+    add('Closest to the equator', equator.name, `${Math.round(Math.abs(equator.lat) * 111).toLocaleString()} km away`);
+    const below = located.filter(c => c.lat < 0).length;
+    if (below) add('Southern hemisphere', plural(below, 'city', 'cities'), 'south of the equator');
+    let far = [0, null, null];
+    for (let i = 0; i < located.length; i++) {
+      for (let j = i + 1; j < located.length; j++) {
+        const d = km(located[i], located[j]);
+        if (d > far[0]) far = [d, located[i], located[j]];
+      }
+    }
+    add('Farthest apart', `${far[1].name} ↔ ${far[2].name}`,
+      `${Math.round(far[0]).toLocaleString()} km (${Math.round(far[0] * 0.6214).toLocaleString()} mi)`);
+  }
+
+  $('facts-scope').textContent = year || 'All years';
+  $('facts-list').innerHTML = facts.length
+    ? facts.map(f => `<div class="fact"><div class="fact-label">${esc(f.label)}</div>` +
+        `<div class="fact-value">${esc(f.value)}</div><div class="fact-detail">${esc(f.detail)}</div></div>`).join('')
+    : '<div class="fact fact-detail">Nothing to show yet.</div>';
+}
+
+// Built-in destination list. `like` holds ISO codes of countries with a similar feel;
+// a destination scores higher the more time you've spent in those.
+const DESTINATIONS = [
+  ['MAR', 'Morocco', ['Marrakech', 'Fes', 'Chefchaouen'], 'Medinas, mountains and desert, a short hop from southern Spain.', ['ESP', 'PRT']],
+  ['TUR', 'Turkey', ['Istanbul', 'Cappadocia', 'Bodrum'], 'Aegean coast, bazaars and balloon-filled valleys.', ['GRC', 'HRV', 'ITA']],
+  ['MLT', 'Malta', ['Valletta', 'Mdina', 'Gozo'], 'Honey-coloured walled cities and clear Mediterranean water.', ['ITA', 'GRC', 'HRV']],
+  ['SVN', 'Slovenia', ['Ljubljana', 'Lake Bled', 'Piran'], 'Alpine lakes and a pocket-sized Adriatic coast.', ['HRV', 'AUT', 'ITA']],
+  ['MNE', 'Montenegro', ['Kotor', 'Budva', 'Durmitor'], 'Fjord-like bays and old towns just down the coast from Dubrovnik.', ['HRV', 'GRC']],
+  ['ALB', 'Albania', ['Tirana', 'Berat', 'Ksamil'], 'Ionian beaches and Ottoman hill towns with far fewer crowds.', ['GRC', 'HRV']],
+  ['CHE', 'Switzerland', ['Lucerne', 'Zermatt', 'Interlaken'], 'Mountain railways, lakes and tidy old towns.', ['AUT', 'FRA', 'ITA', 'DEU']],
+  ['IRL', 'Ireland', ['Dublin', 'Galway', 'Dingle'], 'Pubs, music and a wild Atlantic coastline.', ['GBR']],
+  ['NOR', 'Norway', ['Oslo', 'Bergen', 'Lofoten'], 'Fjords and midnight sun, next door to Sweden and Denmark.', ['SWE', 'DNK']],
+  ['FIN', 'Finland', ['Helsinki', 'Rovaniemi', 'Turku'], 'Design, saunas and Lapland.', ['SWE', 'DNK']],
+  ['ISL', 'Iceland', ['Reykjavik', 'Vik', 'Akureyri'], 'Waterfalls, glaciers and hot springs on one ring road.', ['SWE', 'DNK']],
+  ['POL', 'Poland', ['Krakow', 'Warsaw', 'Gdansk'], 'Grand market squares and great-value Central European cities.', ['CZE', 'HUN', 'DEU', 'AUT']],
+  ['EST', 'Estonia', ['Tallinn', 'Tartu'], 'A fairytale medieval old town on the Baltic.', ['SWE', 'DNK', 'CZE']],
+  ['VNM', 'Vietnam', ['Hanoi', 'Hoi An', 'Ho Chi Minh City'], 'Street food, lantern-lit old towns and limestone bays.', ['THA', 'IDN']],
+  ['KHM', 'Cambodia', ['Siem Reap', 'Phnom Penh', 'Kampot'], 'Angkor Wat and an easy add-on to Thailand.', ['THA']],
+  ['MYS', 'Malaysia', ['Kuala Lumpur', 'Penang', 'Langkawi'], 'Hawker food, rainforest and islands.', ['THA', 'IDN']],
+  ['SGP', 'Singapore', ['Singapore'], 'A food-obsessed city-state that pairs well with any Asia trip.', ['HKG', 'THA', 'JPN']],
+  ['PHL', 'Philippines', ['Palawan', 'Cebu', 'Siargao'], 'Island-hopping, lagoons and surf.', ['THA', 'IDN']],
+  ['TWN', 'Taiwan', ['Taipei', 'Tainan', 'Taroko Gorge'], 'Night markets, hot springs and mountain scenery.', ['JPN', 'KOR', 'HKG']],
+  ['LKA', 'Sri Lanka', ['Galle', 'Kandy', 'Ella'], 'Tea-country train rides, temples and surf beaches.', ['THA', 'IDN']],
+  ['COL', 'Colombia', ['Cartagena', 'Medellín', 'Bogotá'], 'Colourful colonial towns, coffee country and Caribbean coast.', ['MEX', 'PER', 'CRI']],
+  ['GTM', 'Guatemala', ['Antigua', 'Lake Atitlán', 'Tikal'], 'Volcanoes, Maya ruins and colonial streets.', ['MEX', 'CRI']],
+  ['PAN', 'Panama', ['Panama City', 'Bocas del Toro', 'Boquete'], 'Rainforest, islands and a skyline city, right beside Costa Rica.', ['CRI', 'MEX']],
+  ['BLZ', 'Belize', ['Caye Caulker', 'San Ignacio', 'Placencia'], 'Barrier-reef snorkelling and jungle ruins.', ['MEX', 'CRI']],
+  ['ECU', 'Ecuador', ['Quito', 'Cuenca', 'Galápagos'], 'Andean cities and extraordinary wildlife.', ['PER', 'CRI']],
+  ['CHL', 'Chile', ['Santiago', 'Valparaíso', 'Atacama'], 'Desert, wine valleys and Patagonia.', ['PER']],
+  ['ARG', 'Argentina', ['Buenos Aires', 'Mendoza', 'Bariloche'], 'Steak, tango, wine and big landscapes.', ['PER', 'ESP']],
+  ['BRA', 'Brazil', ['Rio de Janeiro', 'Salvador', 'Florianópolis'], 'Beaches, music and Portuguese-flavoured cities.', ['PRT', 'PER', 'MEX']],
+  ['JOR', 'Jordan', ['Petra', 'Wadi Rum', 'Amman'], 'A rose-red ancient city and desert camps.', ['GRC']],
+  ['EGY', 'Egypt', ['Cairo', 'Luxor', 'Aswan'], 'Pyramids, temples and a Nile cruise.', ['GRC']],
+  ['ZAF', 'South Africa', ['Cape Town', 'Kruger', 'Garden Route'], 'Safari, wine country and a dramatic coastline.', []],
+  ['TZA', 'Tanzania', ['Serengeti', 'Zanzibar', 'Ngorongoro'], 'Classic safari followed by Indian Ocean beaches.', []],
+  ['AUS', 'Australia', ['Sydney', 'Melbourne', 'Great Barrier Reef'], 'Harbour cities, reef and outback.', ['IDN']],
+  ['NZL', 'New Zealand', ['Queenstown', 'Wellington', 'Rotorua'], 'Road-trip country: mountains, fjords and geothermal valleys.', ['IDN', 'JPN']]
+];
+// What each destination is known for, searched by the descriptor box.
+const TAGS = {
+  MAR: 'desert mountains culture food markets budget history architecture adventure',
+  TUR: 'beach history food culture markets architecture budget',
+  MLT: 'beach islands history architecture diving relaxing',
+  SVN: 'mountains lakes hiking nature wine relaxing romantic',
+  MNE: 'beach mountains hiking history budget nature',
+  ALB: 'beach budget history mountains hiking',
+  CHE: 'mountains hiking lakes snow skiing nature romantic luxury trains',
+  IRL: 'nature roadtrip nightlife music culture hiking',
+  NOR: 'fjords nature hiking snow northernlights roadtrip mountains',
+  FIN: 'snow northernlights nature design lakes relaxing',
+  ISL: 'nature roadtrip hiking snow northernlights adventure waterfalls',
+  POL: 'history cities budget food architecture culture nightlife',
+  EST: 'history cities architecture budget',
+  VNM: 'food beach budget culture history nature tropical cities',
+  KHM: 'temples history budget culture tropical',
+  MYS: 'food beach islands tropical nature budget cities diving',
+  SGP: 'food cities luxury tropical architecture',
+  PHL: 'beach islands diving surf tropical budget adventure',
+  TWN: 'food cities hiking nature mountains temples',
+  LKA: 'beach surf wildlife temples nature budget tropical trains',
+  COL: 'cities culture beach nightlife budget nature food tropical',
+  GTM: 'history mountains hiking budget culture lakes',
+  PAN: 'beach islands nature wildlife tropical cities',
+  BLZ: 'beach diving islands wildlife history tropical relaxing',
+  ECU: 'wildlife nature mountains hiking adventure islands',
+  CHL: 'desert mountains hiking wine nature adventure roadtrip',
+  ARG: 'food wine cities nightlife mountains hiking nature culture',
+  BRA: 'beach nightlife music nature cities tropical culture',
+  JOR: 'desert history adventure culture',
+  EGY: 'history desert diving culture temples',
+  ZAF: 'wildlife safari wine beach nature roadtrip adventure hiking',
+  TZA: 'wildlife safari beach islands adventure nature',
+  AUS: 'beach surf cities wildlife diving roadtrip nature',
+  NZL: 'nature hiking mountains adventure roadtrip wine fjords'
+};
+// Everyday words mapped onto the tags above.
+const SYNONYMS = {
+  cheap: 'budget', affordable: 'budget', hike: 'hiking', trek: 'hiking', trekking: 'hiking', walking: 'hiking',
+  sea: 'beach', ocean: 'beach', coast: 'beach', sun: 'beach', sunny: 'beach', swimming: 'beach',
+  snorkel: 'diving', snorkeling: 'diving', snorkelling: 'diving', scuba: 'diving', surfing: 'surf',
+  animals: 'wildlife', eat: 'food', eating: 'food', cuisine: 'food', foodie: 'food', restaurants: 'food',
+  ancient: 'history', ruins: 'history', historic: 'history', historical: 'history', museums: 'culture', art: 'culture',
+  cold: 'snow', winter: 'snow', ski: 'skiing', aurora: 'northernlights', northern: 'northernlights',
+  hot: 'tropical', warm: 'tropical', jungle: 'tropical', rainforest: 'tropical',
+  party: 'nightlife', bars: 'nightlife', quiet: 'relaxing', relax: 'relaxing', chill: 'relaxing', calm: 'relaxing',
+  city: 'cities', urban: 'cities', outdoors: 'nature', scenery: 'nature', scenic: 'nature', landscapes: 'nature',
+  drive: 'roadtrip', driving: 'roadtrip', fancy: 'luxury', upscale: 'luxury', couples: 'romantic', honeymoon: 'romantic',
+  shopping: 'markets', train: 'trains', buildings: 'architecture'
+};
+const FILLER = new Set(['and', 'the', 'with', 'for', 'some', 'good', 'great', 'nice', 'lots', 'lights', 'trip', 'want', 'like', 'somewhere', 'place', 'places', 'not', 'too']);
+
+// Returns the descriptors from `query` that a destination satisfies.
+function matchDescriptors(query, iso, text) {
+  const tags = (TAGS[iso] || '').split(' ');
+  const haystack = norm(text);
+  const hits = new Set();
+  for (const raw of query.toLowerCase().split(/[^a-z]+/)) {
+    if (raw.length < 3 || FILLER.has(raw)) continue;
+    const word = SYNONYMS[raw] || raw;
+    const stem = word.replace(/(es|s)$/, '');
+    const tag = tags.find(t => t === word || (stem.length >= 3 && t.startsWith(stem)));
+    if (tag) hits.add(tag === 'northernlights' ? 'northern lights' : tag);
+    else if (stem.length >= 4 && haystack.includes(stem)) hits.add(raw);
+  }
+  return [...hits];
+}
+
+// Well-known stops in countries you may already know; "A|B" lists alternate spellings.
+const MORE_CITIES = {
+  ESP: ['Seville|Sevilla', 'Granada', 'San Sebastián', 'Mallorca', 'Málaga', 'Santiago de Compostela', 'Ronda', 'Cádiz'],
+  FRA: ['Lyon', 'Strasbourg', 'Annecy', 'Avignon', 'Chamonix', 'Mont Saint-Michel'],
+  ITA: ['Naples', 'Amalfi Coast', 'Bologna', 'Cinque Terre', 'Lake Como', 'Sicily'],
+  PRT: ['Sintra', 'Madeira', 'Évora', 'Coimbra', 'Azores'],
+  GRC: ['Crete', 'Thessaloniki', 'Meteora', 'Milos', 'Rhodes', 'Corfu'],
+  HRV: ['Plitvice Lakes', 'Rovinj', 'Zadar', 'Pula'],
+  JPN: ['Hiroshima', 'Kanazawa', 'Hakone', 'Fukuoka', 'Okinawa', 'Nikko'],
+  THA: ['Chiang Rai', 'Krabi', 'Ayutthaya', 'Koh Lanta', 'Pai'],
+  MEX: ['Tulum', 'Guadalajara', 'Puerto Escondido', 'Guanajuato', 'Mérida', 'Puebla'],
+  IDN: ['Ubud', 'Lombok', 'Yogyakarta', 'Komodo', 'Gili Islands'],
+  PER: ['Cusco', 'Machu Picchu', 'Arequipa'],
+  CRI: ['La Fortuna', 'Tamarindo', 'Puerto Viejo'],
+  GBR: ['Edinburgh', 'Bath', 'Oxford', 'Isle of Skye'],
+  DEU: ['Munich', 'Hamburg', 'Dresden'],
+  AUT: ['Innsbruck', 'Hallstatt', 'Graz'],
+  KOR: ['Jeju', 'Gyeongju', 'Jeonju'],
+  NLD: ['Rotterdam', 'Utrecht', 'Haarlem'],
+  BEL: ['Ghent', 'Brussels', 'Antwerp'],
+  CZE: ['Český Krumlov', 'Brno'],
+  HUN: ['Lake Balaton', 'Eger'],
+  DNK: ['Aarhus', 'Odense'],
+  SWE: ['Gothenburg', 'Malmö']
+};
+
+// Bounds of a country's largest landmass, so far-flung territories don't widen the view.
+function mainBounds(feature) {
+  const g = feature.geometry;
+  const polys = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates];
+  let best = null, bestArea = -1;
+  for (const poly of polys) {
+    const b = L.latLngBounds(poly[0].map(([lng, lat]) => [lat, lng]));
+    const area = (b.getNorth() - b.getSouth()) * (b.getEast() - b.getWest());
+    if (area > bestArea) { best = b; bestArea = area; }
+  }
+  return best;
+}
+
+// Suggestions use every trip in the file, regardless of the year filter.
+function showIdeas() {
+  recLayer.clearLayers();
+  const query = $('ideas-query').value.trim();
+  const visited = new Map();
+  for (const p of allPlaces) {
+    if (p.wish) continue;
+    const feature = findCountry(p.type === 'country' ? p.name : p.country);
+    if (!feature) continue;
+    const iso = feature.properties.ADM0_A3;
+    if (!visited.has(iso)) visited.set(iso, { name: feature.properties.NAME, feature, count: 0, cities: new Set() });
+    if (p.type === 'city') { visited.get(iso).count++; visited.get(iso).cities.add(norm(p.name)); }
+  }
+  const continents = new Set([...visited.values()].map(v => v.feature.properties.CONTINENT));
+  const wished = new Set(allPlaces.filter(p => p.wish && p.kind === 'country').map(p => findCountry(p.name)?.properties.ADM0_A3));
+
+  const picks = [];
+  for (const [iso, name, cities, pitch, like] of DESTINATIONS) {
+    const feature = byIso.get(iso);
+    if (!feature || visited.has(iso)) continue;
+    const liked = like.filter(c => visited.has(c)).map(c => visited.get(c)).sort((a, b) => b.count - a.count);
+    const newContinent = !continents.has(feature.properties.CONTINENT);
+    const score = liked.reduce((sum, v) => sum + 1 + v.count, 0) + (newContinent ? 4 : 0);
+    const hits = query ? matchDescriptors(query, iso, `${name} ${pitch} ${cities.join(' ')}`) : [];
+    if (query ? !hits.length : !score) continue;
+    const why = [];
+    if (liked.length) why.push(`Because you've been to ${liked.slice(0, 2).map(v => v.name).join(' and ')}`);
+    if (newContinent) why.push(`${liked.length ? 'and ' : ''}${feature.properties.CONTINENT} would be a new continent`);
+    picks.push({ iso, name, cities, pitch, feature, score, hits, why: why.join(' ') });
+  }
+  picks.sort((a, b) => b.hits.length - a.hits.length || b.score - a.score);
+  const top = picks.slice(0, 8);
+
+  for (const d of top) {
+    L.geoJSON(d.feature, {
+      style: { color: '#c77700', weight: 1.5, dashArray: '5 4', fillColor: '#f0a830', fillOpacity: 0.35, baseFill: 0.35 }
+    }).bindPopup(`<div class="popup-name">${esc(d.name)}</div><div class="popup-date">Suggested next</div>` +
+      `<div class="popup-notes">${esc(d.pitch)}</div>`).addTo(recLayer);
+  }
+
+  const more = [...visited.entries()]
+    .map(([iso, v]) => ({ ...v, iso, unseen: (MORE_CITIES[iso] || [])
+      .filter(c => !c.split('|').some(n => v.cities.has(norm(n)))).map(c => c.split('|')[0]) }))
+    .filter(v => v.unseen.length)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  let html = '';
+  if (top.length) {
+    html += `<div class="ideas-heading">${query ? 'Matching your description' : 'New countries for you'}</div>` + top.map(d =>
+      `<div class="idea-wrap"><button class="idea" type="button" data-iso="${d.iso}"><div class="idea-name">${esc(d.name)}</div>` +
+      (d.hits.length ? `<div class="idea-why">Matches: ${esc(d.hits.join(', '))}</div>` : '') +
+      (d.why ? `<div class="idea-why">${esc(d.why)}</div>` : '') + `<div class="idea-pitch">${esc(d.pitch)}</div>` +
+      `<div class="idea-cities">Start with: ${esc(d.cities.join(', '))}</div></button>` +
+      (wished.has(d.iso) ? '<div class="idea-on">On your wish list</div>'
+        : `<button class="idea-add" type="button" data-name="${esc(d.name)}">+ Add to wish list</button>`) + '</div>').join('');
+  }
+  if (query && !top.length) {
+    html += '<div class="ideas-heading">No matches</div><div class="idea-cities">Try words like beach, food, hiking, history, wildlife, budget, snow, desert, islands or nightlife.</div>';
+  }
+  if (more.length && !query) {
+    html += '<div class="ideas-heading">More to see where you\'ve been</div>' + more.map(v =>
+      `<div class="idea-wrap"><button class="idea" type="button" data-iso="${v.iso}"><div class="idea-name">${esc(v.name)}</div>` +
+      `<div class="idea-cities">Not on your map yet: ${esc(v.unseen.slice(0, 4).join(', '))}</div></button></div>`).join('');
+  }
+  $('ideas-list').innerHTML = html
+    ? html + '<div class="ideas-note">Suggestions come from a built-in list of destinations, matched to the countries and cities in your file. Suggested countries are outlined in amber on the map.</div>'
+    : '<div class="ideas-note">Add some trips to places.csv to get suggestions.</div>';
+}
+
+$('ideas-query').addEventListener('input', showIdeas);
+
+$('ideas-list').addEventListener('click', async e => {
+  const add = e.target.closest('.idea-add');
+  if (add) {
+    add.disabled = true;
+    const name = add.dataset.name;
+    const error = await save('api/places', { type: 'country', name, country: name, state: '', date: '', notes: '', status: 'wishlist' });
+    if (error) { add.disabled = false; add.textContent = error; } else reload();
+    return;
+  }
+  const card = e.target.closest('.idea');
+  const feature = card && byIso.get(card.dataset.iso);
+  if (feature) map.flyToBounds(mainBounds(feature).pad(0.2), { maxZoom: 7, duration: 0.6 });
+});
+
+// ---- Trips: places sharing a trip name, or grouped by country and year when none is given.
+const TRIP_COLORS = ['#6c4bd8', '#d6336c', '#0b7285', '#e8590c', '#2b8a3e', '#1971c2'];
+let trips = [], activeTrip = -1;
+function arc(a, b) {
+  const dx = b.lng - a.lng, dy = b.lat - a.lat;
+  const cx = (a.lng + b.lng) / 2 - dy * 0.18, cy = (a.lat + b.lat) / 2 + dx * 0.18;
+  const points = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24, u = 1 - t;
+    points.push([u * u * a.lat + 2 * u * t * cy + t * t * b.lat, u * u * a.lng + 2 * u * t * cx + t * t * b.lng]);
+  }
+  return points;
+}
+function showTrips() {
+  const groups = new Map();
+  for (const p of allPlaces) {
+    if (p.wish || !['city', 'park'].includes(p.kind)) continue;
+    const auto = !p.trip;
+    const name = p.trip || (yearOf(p) && p.country ? `${p.country} ${yearOf(p)}` : '');
+    if (!name) continue;
+    if (!groups.has(name)) groups.set(name, { name, auto, stops: [] });
+    groups.get(name).stops.push(p);
+  }
+  trips = [...groups.values()];
+  for (const t of trips) {
+    t.stops.sort((a, b) => a.date.localeCompare(b.date) || a.row - b.row);
+    const years = [...new Set(t.stops.map(yearOf).filter(Boolean))].sort();
+    t.when = years.length > 1 ? `${years[0]}–${years[years.length - 1]}` : years[0] || 'No date';
+    t.sort = t.stops.map(p => p.date).filter(Boolean).sort()[0] || '';
+  }
+  trips.sort((a, b) => b.sort.localeCompare(a.sort) || a.name.localeCompare(b.name));
+  trips.forEach((t, i) => { t.color = TRIP_COLORS[i % TRIP_COLORS.length]; });
+  activeTrip = -1;
+  $('trip-names').innerHTML = trips.map(t => `<option value="${esc(t.name)}">`).join('');
+  $('trips-list').innerHTML = trips.length
+    ? trips.map((t, i) => `<div class="trip-row"><input type="checkbox" class="trip-pick" data-i="${i}" aria-label="Select ${esc(t.name)}">` +
+        `<div class="trip-main"><button class="trip" type="button" data-i="${i}" aria-pressed="false" style="border-left-color:${t.color}">` +
+        `<div class="trip-name">${esc(t.name)}</div>` +
+        `<div class="trip-meta">${esc(t.when)} · ${t.stops.length} ${t.stops.length === 1 ? 'stop' : 'stops'}</div>` +
+        `<div class="trip-stops">${esc(t.stops.map(p => p.name).join(' → '))}</div></button>` +
+        `<button class="trip-add" type="button" data-i="${i}">+ Add a stop</button></div></div>`).join('') +
+      '<div class="ideas-note">Lines join each trip\'s stops in date order. Places without a trip name are grouped by country and year; give them a name with Edit, or in the trip column of places.csv.</div>'
+    : '<div class="ideas-note">No trips yet. Add dates to your places, or give them a trip name.</div>';
+  syncTripTools();
+  filterTrips();
+  drawTrips();
+}
+// Hides trips whose name, years and stops don't contain every word typed in the trip search box.
+function filterTrips() {
+  const words = $('trip-search').value.toLowerCase().split(/\s+/).filter(Boolean).map(norm);
+  let shown = 0;
+  document.querySelectorAll('.trip-row').forEach((row, i) => {
+    const t = trips[i];
+    const text = norm([t.name, t.when, ...t.stops.flatMap(p => [p.name, p.state, p.country, p.date])].join(' '));
+    row.hidden = !words.every(w => text.includes(w));
+    if (!row.hidden) shown++;
+  });
+  $('trip-none').hidden = shown > 0 || !trips.length;
+}
+$('trip-search').addEventListener('input', filterTrips);
+function drawTrips() {
+  tripLayer.clearLayers();
+  trips.forEach((t, i) => {
+    const at = t.stops.filter(p => p.lat !== null && p.lng !== null);
+    const on = activeTrip === i, dim = activeTrip >= 0 && !on;
+    for (let k = 1; k < at.length; k++) {
+      L.polyline(arc(at[k - 1], at[k]), { color: t.color, weight: on ? 3.5 : 2, opacity: dim ? 0.15 : on ? 1 : 0.7, interactive: false }).addTo(tripLayer);
+    }
+  });
+  for (const b of document.querySelectorAll('.trip')) b.setAttribute('aria-pressed', +b.dataset.i === activeTrip);
+}
+// Ticking trips offers a name box: one ticked trip is renamed, several are combined into one.
+const pickedTrips = () => [...document.querySelectorAll('.trip-pick:checked')].map(c => trips[+c.dataset.i]);
+function syncTripTools() {
+  const picked = pickedTrips();
+  $('trip-hint').hidden = picked.length > 0;
+  $('trip-merge').hidden = picked.length === 0;
+  $('trip-apply').textContent = picked.length > 1 ? `Combine ${picked.length} trips` : 'Rename';
+  $('trip-error').textContent = '';
+  if (picked.length === 1) $('trip-new-name').value = picked[0].name;
+  else if (picked.length > 1 && (!$('trip-new-name').value || trips.some(t => t.name === $('trip-new-name').value))) {
+    const named = picked.find(t => !t.auto);
+    $('trip-new-name').value = named ? named.name : picked.map(t => t.name).reverse().join(' and ');
+  }
+}
+$('trips-list').addEventListener('change', e => { if (e.target.classList.contains('trip-pick')) syncTripTools(); });
+$('trip-apply').addEventListener('click', async () => {
+  const name = $('trip-new-name').value.trim();
+  if (!name) { $('trip-error').textContent = 'Enter a trip name.'; return; }
+  const places = pickedTrips().flatMap(t => t.stops).map(p => ({ row: p.row, expect: p.name }));
+  $('trip-apply').disabled = true;
+  const error = await save('api/trips', { trip: name, places });
+  $('trip-apply').disabled = false;
+  if (error) $('trip-error').textContent = error;
+  else { $('trip-new-name').value = ''; reload(); }
+});
+$('trips-list').addEventListener('click', e => {
+  const add = e.target.closest('.trip-add');
+  if (add) {
+    // New stop: the Add form opens with this trip (and its country, if it has only one) filled in.
+    const trip = trips[+add.dataset.i];
+    const countries = [...new Set(trip.stops.map(p => p.country).filter(Boolean))];
+    openForm();
+    addForm.elements.trip.value = trip.name;
+    if (countries.length === 1) addForm.elements.country.value = countries[0];
+    addForm.elements.city.focus();
+    return;
+  }
+  const button = e.target.closest('.trip');
+  if (!button) return;
+  activeTrip = activeTrip === +button.dataset.i ? -1 : +button.dataset.i;
+  drawTrips();
+  const at = activeTrip >= 0 ? trips[activeTrip].stops.filter(p => p.lat !== null && p.lng !== null) : [];
+  if (at.length) map.flyToBounds(L.latLngBounds(at.map(p => [p.lat, p.lng])).pad(0.35), { maxZoom: 9, duration: 0.6 });
+});
+
+// ---- Timeline playback: steps through the years, adding each year's places to the map.
+const playLabel = L.control({ position: 'topright' });
+playLabel.onAdd = () => L.DomUtil.create('div', 'play-year');
+playLabel.addTo(map);
+let playTimer = null;
+function stopPlay() {
+  clearTimeout(playTimer);
+  playTimer = null;
+  playUpTo = '';
+  playLabel.getContainer().textContent = '';
+  $('play').innerHTML = '&#9654; Play timeline';
+  syncPins();
+  draw();
+}
+$('play').addEventListener('click', () => {
+  if (playUpTo) return stopPlay();
+  const years = [...$('year').options].map(o => o.value).filter(Boolean);
+  $('year').value = '';
+  $('play').innerHTML = '&#9632; Stop';
+  map.setView([25, 10], 2);
+  let i = 0;
+  const step = async () => {
+    if (i >= years.length) return stopPlay();
+    playUpTo = years[i++];
+    playLabel.getContainer().textContent = playUpTo;
+    syncPins();
+    await draw();
+    playTimer = setTimeout(step, i >= years.length ? 3000 : 1500);
+  };
+  step();
+});
+
+// ---- Search: fly to a place from the file, or to any country by name.
+async function search(text) {
+  const q = norm(text);
+  if (!q) return;
+  const pool = allPlaces.filter(p => p.kind !== 'other').sort((a, b) => a.wish - b.wish);
+  const hit = pool.find(p => norm(p.name) === q) || pool.find(p => norm(p.name).startsWith(q)) || pool.find(p => norm(p.name).includes(q));
+  if (hit && hit.kind !== 'country') {
+    if (playUpTo) stopPlay();
+    if ($('year').value && !hit.wish) { $('year').value = ''; keepView = true; try { await draw(); } finally { keepView = false; } }
+    return goToPlace(hit);
+  }
+  const feature = findCountry(text) || (hit && findCountry(hit.name));
+  if (feature) return map.flyToBounds(mainBounds(feature).pad(0.2), { maxZoom: 7, duration: 0.6 });
+  $('status').className = 'warn';
+  $('status').textContent = `Nothing found for "${text}"`;
+}
+$('search').addEventListener('change', e => search(e.target.value));
+$('search').addEventListener('keydown', e => { if (e.key === 'Enter') search(e.target.value); });
+
+let openView = '';
+function setView(view) {
+  openView = view;
+  $('panel').hidden = !view;
+  for (const id of ['facts', 'ideas', 'lists', 'trips']) $(id).hidden = view !== id;
+  for (const t of document.querySelectorAll('.rail-tab')) t.setAttribute('aria-expanded', t.dataset.view === view);
+  for (const c of document.querySelectorAll('.counter')) c.setAttribute('aria-pressed', view === 'lists' && c.dataset.list === listKind);
+  view === 'ideas' ? map.addLayer(recLayer) : map.removeLayer(recLayer);
+  view === 'trips' ? map.addLayer(tripLayer) : map.removeLayer(tripLayer);
+  map.invalidateSize();
+}
+for (const tab of document.querySelectorAll('.rail-tab')) {
+  tab.addEventListener('click', () => setView(openView === tab.dataset.view ? '' : tab.dataset.view));
+}
+
+// Clicking a header counter lists what it counts; the lists follow the year filter.
+function goToPlace(p) {
+  if (p.type === 'country' || !p.marker) {
+    const feature = findCountry(p.name);
+    if (feature) map.flyToBounds(mainBounds(feature).pad(0.2), { maxZoom: 7, duration: 0.6 });
+    return;
+  }
+  // The pin may be inside a cluster bubble; open it up before showing the popup.
+  map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 7), { duration: 0.6 });
+  map.once('moveend', () => {
+    if (map.hasLayer(cityLayer) && cityLayer.hasLayer(p.marker)) cityLayer.zoomToShowLayer(p.marker, () => p.marker.openPopup());
+  });
+}
+function showList() {
+  const year = $('year').value;
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  listActions = [];
+  // Rows for places that have their own line in the file also get an Edit button.
+  const row = (label, detail, action, place) => {
+    listActions.push(action);
+    return `<div class="list-item"><button class="list-row" type="button" data-i="${listActions.length - 1}"><span>${esc(label)}</span><small>${esc(detail)}</small></button>` +
+      (place?.row ? `<button class="list-edit" type="button" data-row="${place.row}" aria-label="Edit ${esc(label)}">Edit</button>` : '') + '</div>';
+  };
+  const grouped = places => {
+    const groups = new Map();
+    for (const p of places) {
+      const key = (p.type === 'country' ? 'Countries' : p.country) || 'Other';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    }
+    return [...groups.keys()].sort().map(key => `<div class="list-group">${esc(key)}</div>` +
+      groups.get(key).sort(byName).map(p => row(p.name, p.state || p.date, () => goToPlace(p), p)).join('')).join('');
+  };
+  let title, html;
+  if (listKind === 'countries') {
+    title = 'Countries visited';
+    html = [...lists.countries].sort(byName).map(c => row(c.name, countLabel(c), () => {
+      const feature = findCountry(c.name);
+      const points = c.pins.filter(p => p.lat !== null && p.lng !== null).map(p => [p.lat, p.lng]);
+      if (points.length) map.flyToBounds(L.latLngBounds(points).pad(0.3), { maxZoom: 8, duration: 0.6 });
+      else if (feature) map.flyToBounds(mainBounds(feature).pad(0.2), { maxZoom: 7, duration: 0.6 });
+    })).join('');
+  } else if (listKind === 'cities') {
+    title = 'Cities visited';
+    html = grouped(lists.cities);
+  } else if (listKind === 'year') {
+    title = 'Places visited';
+    html = grouped([...lists.cities, ...lists.parks]);
+  } else if (listKind === 'parks') {
+    title = 'National parks';
+    html = grouped(lists.parks);
+  } else {
+    title = 'Wish list';
+    html = grouped(lists.wishes);
+  }
+  const count = listKind === 'year' ? lists.cities.length + lists.parks.length : lists[listKind].length;
+  $('lists-title').innerHTML = `${title} <span id="lists-scope">${count}${year && listKind !== 'wishes' ? ` in ${esc(year)}` : ''}</span>`;
+  $('lists-body').innerHTML = html || '<div class="list-empty">Nothing here yet.</div>';
+}
+for (const counter of document.querySelectorAll('.counter')) {
+  counter.addEventListener('click', () => {
+    const same = openView === 'lists' && listKind === counter.dataset.list;
+    listKind = counter.dataset.list;
+    if (!same) showList();
+    setView(same ? '' : 'lists');
+  });
+}
+$('lists-body').addEventListener('click', e => {
+  const edit = e.target.closest('.list-edit');
+  const place = edit && allPlaces.find(p => p.row === +edit.dataset.row);
+  if (place) return openForm(place);
+  const button = e.target.closest('.list-row');
+  if (button) listActions[button.dataset.i]();
+});
+
+function fail(message) {
+  const status = $('status');
+  status.className = 'warn';
+  status.innerHTML = `${esc(message)} <label for="file">Choose places.csv</label>`;
+}
+
+$('file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (file) render(await file.text()).catch(err => fail(err.message));
+});
+
+async function applyTheme() {
+  document.body.classList.toggle('dark', dark);
+  $('theme-toggle').textContent = dark ? 'Light mode' : 'Dark mode';
+  $('theme-toggle').setAttribute('aria-pressed', dark);
+  baseTiles.setUrl(tileUrl('Base'));
+  labelTiles.setUrl(tileUrl('Reference'));
+  Object.assign(EDGE, palette().edge);
+  Object.assign(INNER, palette().inner);
+  if (!allPlaces.length) return;
+  keepView = true;
+  try { await draw(); } finally { keepView = false; }
+}
+$('theme-toggle').addEventListener('click', () => {
+  dark = !dark;
+  try { localStorage.setItem('travel-map-theme', dark ? 'dark' : 'light'); } catch {}
+  applyTheme();
+});
+applyTheme();
+
+function loadPlaces() {
+  const get = url => fetch(url, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(); return r.text(); });
+  return get(CSV_URL)
+    .then(text => { $('sample-note').hidden = true; return text; })
+    .catch(() => get(SAMPLE_URL).then(text => { $('sample-note').hidden = false; return text; }))
+    .catch(() => { throw new Error("Couldn't load places.csv."); })
+    .then(render)
+    .catch(err => fail(err.message));
+}
+
+// Reloads the file after a change without moving the map.
+async function reload() {
+  keepView = true;
+  try { await loadPlaces(); } finally { keepView = false; }
+}
+
+// Sends a change to server.py; resolves to an error message, or '' on success.
+const NEEDS_SERVER = 'Saving needs the map to be started with "Start Travel Map" (or python3 server.py).';
+async function save(url, payload) {
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const body = await res.json().catch(() => null);
+    return res.ok && body?.ok ? '' : body?.error || NEEDS_SERVER;
+  } catch {
+    return NEEDS_SERVER;
+  }
+}
+
+// The same form adds a place or edits the one whose popup "Edit" button was clicked.
+const addForm = $('add-form');
+let editing = null;
+function openForm(place) {
+  editing = place || null;
+  addForm.reset();
+  fillPlaceLists();
+  addForm.elements.to.min = '';
+  $('add-error').textContent = '';
+  $('add-title').textContent = editing ? `Edit ${editing.name}` : 'Add a place';
+  $('add-save').textContent = editing ? 'Save changes' : 'Save to places.csv';
+  $('add-delete').hidden = !editing;
+  $('kept-date').hidden = true;
+  if (editing) {
+    const f = addForm.elements, p = editing;
+    f.status.value = p.wish ? 'wishlist' : '';
+    f.kind.value = ['park', 'home'].includes(p.kind) ? p.kind : 'city';
+    f.city.value = p.kind === 'country' ? '' : p.name;
+    f.country.value = p.kind === 'country' ? p.name : p.country;
+    f.state.value = p.state;
+    f.notes.value = p.notes;
+    f.trip.value = p.trip;
+    f.photo.value = p.photo;
+    f.link.value = p.link;
+    const days = p.date.match(/^(\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?$/);
+    if (days) { f.from.value = days[1]; f.to.value = days[2] || ''; }
+    else if (p.date) {
+      $('kept-date').hidden = false;
+      $('kept-date').textContent = `Current date: ${p.date}. Pick days above only if you want to replace it.`;
+    }
+  }
+  syncForm();
+  $('add-dialog').showModal();
+}
+$('add-open').addEventListener('click', () => openForm());
+$('add-cancel').addEventListener('click', () => $('add-dialog').close());
+$('map').addEventListener('click', e => {
+  const button = e.target.closest('.popup-edit');
+  const place = button && allPlaces.find(p => p.row === +button.dataset.row);
+  if (place) { map.closePopup(); openForm(place); }
+});
+addForm.elements.from.addEventListener('change', e => { addForm.elements.to.min = e.target.value; });
+// Country and state are type-ahead lists: your own countries first, then every country;
+// the state list offers US states once the country is the United States.
+function fillPlaceLists() {
+  const mine = [...new Set(allPlaces.map(p => (p.kind === 'country' ? p.name : p.country)).filter(Boolean))].sort();
+  const all = [...byIso.values()].map(f => f.properties.NAME).sort();
+  $('country-names').innerHTML = [...new Set([...mine, ...all])].map(n => `<option value="${esc(n)}">`).join('');
+}
+const US_STATES = Object.values(STATE_CODES).sort().map(n => `<option value="${esc(n)}">`).join('');
+function syncForm() {
+  const f = addForm.elements;
+  addForm.classList.toggle('is-wish', f.status.value !== '' || f.kind.value === 'home');
+  const us = findCountry(f.country.value)?.properties.ADM0_A3 === HOME_ISO;
+  $('state-names').innerHTML = us ? US_STATES : '';
+  f.state.placeholder = us ? 'Start typing a state' : 'Optional';
+}
+addForm.elements.country.addEventListener('input', syncForm);
+addForm.elements.status.addEventListener('change', syncForm);
+addForm.elements.kind.addEventListener('change', syncForm);
+
+async function finish(error) {
+  $('add-save').disabled = $('add-delete').disabled = false;
+  if (error) { $('add-error').textContent = error; return; }
+  $('add-dialog').close();
+  reload();
+}
+addForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const place = Object.fromEntries(new FormData(addForm));
+  // A city row also shades its country; with no city, the country is saved on its own.
+  place.city = place.city.trim();
+  if (!place.city && place.kind !== 'city') { $('add-error').textContent = 'Enter a name.'; return; }
+  if (place.kind === 'home') place.status = '';
+  place.type = !place.city ? 'country' : { city: 'city', park: 'National Park', home: 'home' }[place.kind];
+  place.name = place.city || place.country.trim();
+  if (!place.city) place.state = '';
+  // One day is stored as 2025-05-03, several as "2025-05-03 to 2025-05-10".
+  const hidden = addForm.classList.contains('is-wish');
+  const from = hidden ? '' : place.from || place.to, to = hidden ? '' : place.to || place.from;
+  if (from > to) { $('add-error').textContent = 'The last day is before the first day.'; return; }
+  place.date = from === to ? from : `${from} to ${to}`;
+  if (editing && !place.date && !place.status && !$('kept-date').hidden) place.date = editing.date;
+  $('add-save').disabled = true;
+  $('add-error').textContent = '';
+  finish(editing
+    ? await save('api/places/update', { row: editing.row, expect: editing.name, place })
+    : await save('api/places', place));
+});
+$('add-delete').addEventListener('click', async () => {
+  if (!editing || !confirm(`Delete ${editing.name} from places.csv?`)) return;
+  $('add-delete').disabled = true;
+  finish(await save('api/places/delete', { row: editing.row, expect: editing.name }));
+});
+
+// ---- Share: a picture of the current map view, or a self-contained copy of the page.
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = resolve;
+    el.onerror = () => reject(new Error("Couldn't load the image tool"));
+    document.head.appendChild(el);
+  });
+}
+async function mapImage() {
+  if (!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  return html2canvas($('map'), {
+    useCORS: true,
+    scale: 2,
+    backgroundColor: dark ? '#0d1114' : '#cfd3d4',
+    ignoreElements: el => el.classList?.contains('leaflet-control-zoom')
+  });
+}
+// The exported page carries the CSV and the looked-up coordinates, so it opens anywhere without the server.
+async function exportHtml() {
+  const page = await (await fetch(location.pathname, { cache: 'no-store' })).text();
+  const coords = {};
+  for (const p of allPlaces) {
+    if (p.lat !== null && p.lng !== null) coords[[p.name, p.state, p.country].filter(Boolean).join(', ')] = [p.lat, p.lng];
+  }
+  const data = JSON.stringify({ csv: lastCsv, coords }).replace(/</g, '\\u003c');
+  return page.replace('<body>', () => `<body>\n<script id="embedded-places" type="application/json">${data}</` + 'script>');
+}
+async function share(button, work) {
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Working…';
+  try { await work(); $('share').open = false; }
+  catch (err) { $('status').className = 'warn'; $('status').textContent = err.message || 'That didn\'t work.'; }
+  finally { button.disabled = false; button.textContent = label; }
+}
+$('save-image').addEventListener('click', e => share(e.target, async () => {
+  const canvas = await mapImage();
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error("Couldn't create the image.");
+  download(blob, 'travel-map.png');
+}));
+$('export-file').addEventListener('click', e => share(e.target, async () => {
+  download(new Blob([await exportHtml()], { type: 'text/html' }), 'travel-map.html');
+}));
+
+if (EMBEDDED) render(EMBEDDED.csv).catch(err => fail(err.message));
+else loadPlaces();
+</script>
+</body>
+</html>

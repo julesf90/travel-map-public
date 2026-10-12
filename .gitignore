@@ -1,0 +1,7 @@
+# Personal travel data stays on this computer; the repo ships places.sample.csv instead.
+places.csv
+places.backup.csv
+*.tmp
+
+__pycache__/
+.DS_Store
