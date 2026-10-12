@@ -4,6 +4,8 @@ An interactive map of everywhere I've been, built with [Leaflet](https://leaflet
 
 **Live demo: <https://julesf90.github.io/travel-map-public/>**
 
+[![The travel map in dark mode, showing sample data](screenshot.png)](https://julesf90.github.io/travel-map-public/)
+
 The demo is view-only and shows made-up sample places (`places.sample.csv`), not my real travel history.
 
 ## Features
