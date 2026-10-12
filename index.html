@@ -206,6 +206,37 @@
   .trip-meta, .trip-stops { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
   .play-year { font-size: 44px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); background: var(--panel); padding: 2px 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, .25); }
   .play-year:empty { display: none; }
+
+  /* Phones and narrow windows: compact header, tabs along the bottom, panel as a sheet above them. */
+  @media (max-width: 700px) {
+    html, body { height: 100dvh; }
+    header { gap: 8px; padding: 8px 10px; }
+    h1 { font-size: 20px; width: 100%; }
+    .counters { flex-wrap: nowrap; overflow-x: auto; width: 100%; gap: 6px; scrollbar-width: none; }
+    .counters::-webkit-scrollbar { display: none; }
+    .counter { min-width: 0; flex: 1 0 auto; padding: 6px 10px; gap: 1px; }
+    .counter b { font-size: 19px; }
+    .counter span { font-size: 11px; white-space: nowrap; }
+    #search { flex: 1 1 100%; width: auto; font-size: 16px; }
+    #year, #add-form input, #add-form select, #add-form textarea, #ideas-query, #trip-search, #trip-new-name { font-size: 16px; }
+    #add-open, #theme-toggle, .tool { padding: 6px 9px; font-size: 12.5px; }
+    #status { margin-left: 0; flex-basis: 100%; }
+    #status:empty { display: none; }
+    #main { flex-direction: column; }
+    #map { order: 1; flex: 1 1 0; min-height: 0; }
+    #panel { order: 2; flex: 0 0 52%; width: 100%; max-width: none; border-top: 1px solid var(--line); }
+    #rail { order: 3; width: 100%; height: 42px; flex-direction: row; box-shadow: 0 -2px 6px rgba(0, 0, 0, .18); }
+    .rail-tab { font-size: 14px; }
+    .rail-tab span { writing-mode: horizontal-tb; transform: none; }
+    .rail-tab span::before, .rail-tab[aria-expanded="true"] span::before { content: none; }
+    .rail-tab[aria-expanded="true"] { box-shadow: inset 0 4px 0 rgba(255, 255, 255, .85); }
+    .legend { padding: 6px 8px; font-size: 11px; margin-bottom: 30px !important; }
+    .leaflet-control-attribution { font-size: 9px; }
+    .legend-bar { width: 120px; height: 8px; }
+    .legend-key, .legend-hint, .pins-hidden .legend-hint, .panel-open .legend { display: none; }
+    .play-year { font-size: 30px; padding: 2px 12px; }
+    .share-menu { left: auto; right: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1324,6 +1355,7 @@ let openView = '';
 function setView(view) {
   openView = view;
   $('panel').hidden = !view;
+  document.body.classList.toggle('panel-open', !!view);
   for (const id of ['facts', 'ideas', 'lists', 'trips']) $(id).hidden = view !== id;
   for (const t of document.querySelectorAll('.rail-tab')) t.setAttribute('aria-expanded', t.dataset.view === view);
   for (const c of document.querySelectorAll('.counter')) c.setAttribute('aria-pressed', view === 'lists' && c.dataset.list === listKind);
