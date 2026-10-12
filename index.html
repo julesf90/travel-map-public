@@ -27,15 +27,15 @@
   header {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 10px 20px;
     padding: 10px 16px;
     background: var(--panel);
     border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
   }
-  h1 { font-size: 26px; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
-  .counters { display: flex; gap: 10px; flex-wrap: wrap; }
-  .counter { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 104px; font: inherit; color: inherit; text-align: left; background: #f3f6f7; border: 1px solid transparent; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  h1 { font-size: 24px; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+  .counters { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+  .counter { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; font: inherit; color: inherit; text-align: left; background: #f3f6f7; border: 1px solid transparent; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
   .counter:hover { background: #e9eef1; }
   .counter[aria-pressed="true"] { background: #e9eef1; border-color: #b9c4cb; }
   .list-group { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 2px; }
@@ -48,11 +48,17 @@
   .list-row:hover span:first-child { text-decoration: underline; }
   .list-row small { color: var(--muted); font-size: 12px; white-space: nowrap; }
   .list-empty { color: var(--muted); font-size: 13px; }
-  .counter b { font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1; }
-  .counter span { color: var(--muted); font-size: 12px; }
+  .counter b { font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .counter span { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
   .counter.countries b { color: var(--visited); }
   .counter.cities b { color: var(--accent); }
-  #year-filter { color: var(--muted); font-size: 13px; }
+  .toolbar { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .toolbar #search, .toolbar #year, .toolbar button, .toolbar summary { height: 34px; box-sizing: border-box; font-size: 13px; border-radius: 6px; }
+  .toolbar button, .toolbar summary { display: inline-flex; align-items: center; padding: 0 12px; white-space: nowrap; }
+  .toolbar #search { flex: 1 1 180px; max-width: 260px; padding: 0 10px; }
+  .toolbar #year { padding: 0 6px; }
+  .toolbar button[hidden] { display: none; }
+  #year-filter { color: var(--muted); font-size: 13px; display: inline-flex; align-items: center; }
   #add-open, #theme-toggle, .tool, .add-actions button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
   #add-open:hover, #theme-toggle:hover, .tool:hover, #add-cancel:hover, .share-menu button:hover { background: #f3f6f7; }
   #add-save { background: #0b4f47; border-color: #0b4f47; color: #fff; }
@@ -86,15 +92,15 @@
   .fact-label { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
   .fact-value { font-size: 18px; font-weight: 650; color: #0b4f47; line-height: 1.25; margin-top: 2px; }
   .fact-detail { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  #rail { width: 44px; flex: none; display: flex; flex-direction: column; gap: 3px; background: #fff; box-shadow: 2px 0 6px rgba(0, 0, 0, .18); z-index: 500; }
-  .rail-tab { flex: 1; border: 0; color: #fff; font: inherit; font-size: 15px; font-weight: 700; letter-spacing: .04em; cursor: pointer; padding: 0; transition: filter .15s; }
+  #rail { width: 28px; flex: none; display: flex; flex-direction: column; gap: 3px; background: var(--panel); box-shadow: 2px 0 6px rgba(0, 0, 0, .18); z-index: 500; }
+  .rail-tab { flex: none; border: 0; border-radius: 0 0 6px 0; color: #fff; font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .04em; cursor: pointer; padding: 12px 0; transition: filter .15s; }
   .rail-tab[data-view="facts"] { background: #0f6b60; }
   .rail-tab[data-view="ideas"] { background: #b96a00; }
   .rail-tab[data-view="trips"] { background: #5b4bb5; }
   .rail-tab:hover { filter: brightness(1.15); }
-  .rail-tab[aria-expanded="true"] { box-shadow: inset 5px 0 0 rgba(255, 255, 255, .85); filter: brightness(.82); }
+  .rail-tab[aria-expanded="true"] { box-shadow: inset 3px 0 0 rgba(255, 255, 255, .85); filter: brightness(.82); }
   .rail-tab span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
-  .rail-tab span::before { content: '▸'; display: inline-block; margin-bottom: 8px; font-size: 13px; }
+  .rail-tab span::before { content: '▸'; display: inline-block; margin-bottom: 5px; font-size: 10px; }
   .rail-tab[aria-expanded="true"] span::before { content: '◂'; }
   #ideas-query { width: 100%; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 14px; color: var(--ink); background: var(--panel); }
   .ideas-heading { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 2px; }
@@ -111,6 +117,9 @@
   .idea-cities { color: var(--muted); }
   .ideas-note { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
   .legend { background: var(--panel); padding: 8px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); font-size: 12px; }
+  .legend-toggle { display: block; font: inherit; font-weight: 700; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; }
+  .legend-body { margin-top: 7px; }
+  .legend-body[hidden] { display: none; }
   .legend-title { font-weight: 600; margin-bottom: 5px; }
   .legend-bar { width: 160px; height: 10px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .15); }
   .legend-gap { height: 8px; }
@@ -168,7 +177,8 @@
   #search { font: inherit; font-size: 14px; color: var(--ink); width: 210px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
   .tool[hidden] { display: none; }
   #share { position: relative; }
-  #share summary { list-style: none; display: inline-block; }
+  #share { display: inline-flex; }
+  #share summary { list-style: none; display: inline-flex; align-items: center; }
   #share summary::-webkit-details-marker { display: none; }
   .share-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1200; display: flex; flex-direction: column; min-width: 230px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 6px 20px rgba(0, 0, 0, .2); }
   .share-menu button { font: inherit; font-size: 13.5px; text-align: left; padding: 8px 10px; border: 0; border-radius: 5px; background: none; color: var(--ink); cursor: pointer; }
@@ -212,28 +222,28 @@
     html, body { height: 100dvh; }
     header { gap: 8px; padding: 8px 10px; }
     h1 { font-size: 20px; width: 100%; }
-    .counters { flex-wrap: nowrap; overflow-x: auto; width: 100%; gap: 6px; scrollbar-width: none; }
+    .counters { grid-auto-columns: minmax(max-content, 1fr); overflow-x: auto; width: 100%; gap: 6px; scrollbar-width: none; }
     .counters::-webkit-scrollbar { display: none; }
-    .counter { min-width: 0; flex: 1 0 auto; padding: 6px 10px; gap: 1px; }
+    .counter { padding: 6px 10px; gap: 1px; }
     .counter b { font-size: 19px; }
-    .counter span { font-size: 11px; white-space: nowrap; }
-    #search { flex: 1 1 100%; width: auto; font-size: 16px; }
-    #year, #add-form input, #add-form select, #add-form textarea, #ideas-query, #trip-search, #trip-new-name { font-size: 16px; }
-    #add-open, #theme-toggle, .tool { padding: 6px 9px; font-size: 12.5px; }
+    .counter span { font-size: 11px; }
+    .toolbar #search { flex: 1 1 100%; max-width: none; font-size: 16px; }
+    .toolbar #year { font-size: 16px; }
+    .toolbar button, .toolbar summary { padding: 0 9px; font-size: 12.5px; }
+    #add-form input, #add-form select, #add-form textarea, #ideas-query, #trip-search, #trip-new-name { font-size: 16px; }
     #status { margin-left: 0; flex-basis: 100%; }
     #status:empty { display: none; }
     #main { flex-direction: column; }
     #map { order: 1; flex: 1 1 0; min-height: 0; }
     #panel { order: 2; flex: 0 0 52%; width: 100%; max-width: none; border-top: 1px solid var(--line); }
-    #rail { order: 3; width: 100%; height: 42px; flex-direction: row; box-shadow: 0 -2px 6px rgba(0, 0, 0, .18); }
-    .rail-tab { font-size: 14px; }
+    #rail { order: 3; width: 100%; height: 36px; flex-direction: row; box-shadow: 0 -2px 6px rgba(0, 0, 0, .18); }
+    .rail-tab { flex: 1; font-size: 13px; padding: 0; border-radius: 0; }
     .rail-tab span { writing-mode: horizontal-tb; transform: none; }
     .rail-tab span::before, .rail-tab[aria-expanded="true"] span::before { content: none; }
     .rail-tab[aria-expanded="true"] { box-shadow: inset 0 4px 0 rgba(255, 255, 255, .85); }
     .legend { padding: 6px 8px; font-size: 11px; margin-bottom: 30px !important; }
     .leaflet-control-attribution { font-size: 9px; }
     .legend-bar { width: 120px; height: 8px; }
-    .legend-key, .legend-hint, .pins-hidden .legend-hint, .panel-open .legend { display: none; }
     .play-year { font-size: 30px; padding: 2px 12px; }
     .share-menu { left: auto; right: 0; }
   }
@@ -248,6 +258,7 @@
     <button type="button" class="counter parks" data-list="parks" id="park-counter" title="Show the list of national parks" hidden><b id="n-parks">0</b><span>National parks</span></button>
     <button type="button" class="counter wishes" data-list="wishes" id="wish-counter" title="Show the wish list" hidden><b id="n-wishes">0</b><span>On the wish list</span></button>
   </div>
+  <div class="toolbar">
   <input id="search" type="search" list="search-names" placeholder="Search a city or country" aria-label="Search a city or country">
   <datalist id="search-names"></datalist>
   <label id="year-filter" hidden>Year <select id="year"><option value="">All years</option></select></label>
@@ -262,6 +273,7 @@
       <button id="export-file" type="button">Export as one file to send</button>
     </div>
   </details>
+  </div>
   <span id="sample-note" hidden>Sample data</span>
   <div id="status">Loading…</div>
   <input type="file" id="file" accept=".csv,text/csv" hidden>
@@ -559,19 +571,41 @@ const INNER = { weight: 0.9, fill: false, interactive: false, ...palette().inner
 const scale = (n, max) => (max > 1 ? (n - 1) / (max - 1) : 1);
 
 const legend = L.control({ position: 'bottomleft' });
-legend.onAdd = () => L.DomUtil.create('div', 'legend');
+// The legend folds down to a small "Legend" button; it starts folded on phones.
+let legendOpen = window.innerWidth > 700;
+try { legendOpen = { open: true, closed: false }[localStorage.getItem('travel-map-legend')] ?? legendOpen; } catch {}
+legend.onAdd = () => {
+  const box = L.DomUtil.create('div', 'legend');
+  L.DomEvent.disableClickPropagation(box);
+  box.addEventListener('click', e => {
+    if (!e.target.closest('.legend-toggle')) return;
+    legendOpen = !legendOpen;
+    try { localStorage.setItem('travel-map-legend', legendOpen ? 'open' : 'closed'); } catch {}
+    syncLegend();
+  });
+  return box;
+};
+function syncLegend() {
+  const box = legend.getContainer();
+  if (!box) return;
+  box.querySelector('.legend-body').hidden = !legendOpen;
+  box.querySelector('.legend-toggle').setAttribute('aria-expanded', legendOpen);
+  box.querySelector('.legend-toggle').textContent = legendOpen ? 'Legend ▾' : 'Legend ▸';
+}
 function showLegend(max, stateMax) {
   if (!legend.getContainer()) legend.addTo(map);
   const bar = (title, color, top) => `<div class="legend-title">${title}</div>` +
     `<div class="legend-bar" style="background: linear-gradient(to right, ${color(0)}, ${color(1)})"></div>` +
     `<div class="legend-ends"><span>${top > 1 ? 1 : ''}</span><span>${top}</span></div>`;
-  legend.getContainer().innerHTML = bar('Places visited per country', heat, max) +
+  legend.getContainer().innerHTML = '<button class="legend-toggle" type="button"></button><div class="legend-body">' +
+    bar('Places visited per country', heat, max) +
     (stateMax ? `<div class="legend-gap"></div>${bar('Places per US state (home)', homeHeat, stateMax)}` : '') +
     '<div class="legend-key"><span>' + ART.dot + 'Visited city</span>' +
     (lists.wishes.length && showWishes ? '<span>' + ART.star + 'Wish list</span>' : '') +
     (lists.parks.length ? '<span>' + ART.tree + 'National park</span>' : '') +
     (lists.homes.length ? '<span>' + ART.house + 'Home</span>' : '') + '</div>' +
-    '<div class="legend-hint">Zoom in or click a country to see its cities</div>';
+    '<div class="legend-hint">Zoom in or click a country to see its cities</div></div>';
+  syncLegend();
 }
 
 const UNITS_URL = 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_admin_0_map_units.geojson';
