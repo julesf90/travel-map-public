@@ -2,7 +2,9 @@
 
 An interactive map of everywhere I've been, built with [Leaflet](https://leafletjs.com/) and plain HTML, CSS and JavaScript. Places live in a single CSV file; a small Python server lets the page add, edit and delete them.
 
-The public demo shows made-up sample places (`places.sample.csv`), not my real travel history.
+**Live demo: <https://julesf90.github.io/travel-map-public/>**
+
+The demo is view-only and shows made-up sample places (`places.sample.csv`), not my real travel history.
 
 ## Features
 
